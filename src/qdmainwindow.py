@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
-from PySide6.QtWidgets import QMainWindow, QMenuBar, QApplication, QMdiArea, QMdiSubWindow, QTextEdit
-from PySide6.QtGui import QAction  # QAction resides in QtGui in PySide6
-from PySide6.QtCore import Qt
+from PySide6.QtWidgets import (
+    QMainWindow, QMenuBar, QApplication, QMdiArea
+)
+from PySide6.QtGui import QAction
+from qdmdiwindow import QD_MdiWindow
 
 
 class QD_MainWindow(QMainWindow):  # Note: class name as requested
@@ -69,17 +71,11 @@ class QD_MainWindow(QMainWindow):  # Note: class name as requested
 
     # --- Project action handlers ---
     def _new_project(self):
-        # Create a new subwindow with a simple text editor placeholder
-        editor = QTextEdit()
-        editor.setPlainText("New Project Window")
-        sub = QMdiSubWindow()
-        sub.setAttribute(Qt.WA_DeleteOnClose)
-        sub.setWidget(editor)
-        sub.setWindowTitle(f"Untitled {self._mdi_seq}")
+        mdi = QD_MdiWindow(title=f"Scene {self._mdi_seq}")
         self._mdi_seq += 1
-        self.mdi_area.addSubWindow(sub)
-        sub.show()
-        self.statusBar().showMessage("Created new MDI window", 3000)
+        self.mdi_area.addSubWindow(mdi)
+        mdi.show()
+        self.statusBar().showMessage("Created new graphics scene window", 3000)
 
     def _open_project(self):
         self.statusBar().showMessage("Open project (not yet implemented)", 3000)
@@ -95,6 +91,3 @@ class QD_MainWindow(QMainWindow):  # Note: class name as requested
     def _show_about_dialog(self):
         from PySide6.QtWidgets import QMessageBox
         QMessageBox.about(self, "About QuestDesigner", "QuestDesigner\nA quest design tool (prototype).")
-
-# Temporary backward compatibility alias (can be removed later)
-QD_MainWIndow = QD_MainWindow
