@@ -1,18 +1,26 @@
 # -*- coding: utf-8 -*-
-from PySide6.QtWidgets import QMainWindow, QMenuBar, QApplication
+from PySide6.QtWidgets import QMainWindow, QMenuBar, QApplication, QMdiArea, QMdiSubWindow, QTextEdit
 from PySide6.QtGui import QAction  # QAction resides in QtGui in PySide6
+from PySide6.QtCore import Qt
 
 
 class QD_MainWindow(QMainWindow):  # Note: class name as requested
     def __init__(self, parent=None):
         super().__init__(parent)
+        self._mdi_seq = 1  # sequence counter for new subwindows
         self._configure_window()
         self._create_menubar()
         self._create_statusbar()
+        self._create_mdi_area()
 
     def _configure_window(self):
         self.setWindowTitle("QuestDesigner")
         self.setMinimumSize(800, 600)
+
+    def _create_mdi_area(self):
+        # Central MDI area starts empty
+        self.mdi_area = QMdiArea()
+        self.setCentralWidget(self.mdi_area)
 
     def _create_menubar(self):
         menubar: QMenuBar = self.menuBar()
@@ -22,7 +30,7 @@ class QD_MainWindow(QMainWindow):  # Note: class name as requested
 
         new_action = QAction("&New", self)
         new_action.setShortcut("Ctrl+N")
-        new_action.setStatusTip("Create a new project")
+        new_action.setStatusTip("Create a new project window")
         new_action.triggered.connect(self._new_project)
         project_menu.addAction(new_action)
 
@@ -59,15 +67,30 @@ class QD_MainWindow(QMainWindow):  # Note: class name as requested
     def _create_statusbar(self):
         self.statusBar().showMessage("Ready")
 
-    # --- Project action handlers (placeholders) ---
+    # --- Project action handlers ---
     def _new_project(self):
-        self.statusBar().showMessage("New project (not yet implemented)", 3000)
+        # Create a new subwindow with a simple text editor placeholder
+        editor = QTextEdit()
+        editor.setPlainText("New Project Window")
+        sub = QMdiSubWindow()
+        sub.setAttribute(Qt.WA_DeleteOnClose)
+        sub.setWidget(editor)
+        sub.setWindowTitle(f"Untitled {self._mdi_seq}")
+        self._mdi_seq += 1
+        self.mdi_area.addSubWindow(sub)
+        sub.show()
+        self.statusBar().showMessage("Created new MDI window", 3000)
 
     def _open_project(self):
         self.statusBar().showMessage("Open project (not yet implemented)", 3000)
 
     def _save_project(self):
-        self.statusBar().showMessage("Save project (not yet implemented)", 3000)
+        active = self.mdi_area.activeSubWindow()
+        if active is None:
+            self.statusBar().showMessage("No active window to save", 3000)
+            return
+        # Placeholder save logic
+        self.statusBar().showMessage(f"Saved '{active.windowTitle()}' (not actually implemented)", 3000)
 
     def _show_about_dialog(self):
         from PySide6.QtWidgets import QMessageBox
