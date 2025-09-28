@@ -1,0 +1,21 @@
+# IDE project settings (PyCharm / IntelliJ)
+.idea/
+
+# Python bytecode & cache directories
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments (uncomment if you keep a local venv inside the repo)
+# .venv/
+# venv/
+
+# Distribution / packaging (optional extra safety)
+build/
+dist/
+*.egg-info/
+
+# Misc
+.DS_Store
+
