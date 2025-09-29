@@ -6,7 +6,7 @@ context menus, selection helpers, etc.). QD_MdiWindow uses this instead of a
 plain QGraphicsScene so later enhancements remain localized here.
 """
 from typing import Optional, Callable, Dict, TYPE_CHECKING, cast  # added cast
-from PySide6.QtWidgets import QGraphicsScene  # QMenu removed
+from PySide6.QtWidgets import QGraphicsScene, QApplication, QWidget  # Added QWidget
 from PySide6.QtGui import QPainter, QPen, QColor, QTransform
 from PySide6.QtCore import QRectF, QPointF, Qt  # Added Qt
 
