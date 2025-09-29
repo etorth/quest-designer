@@ -18,7 +18,7 @@ __all__ = ["Logic"]
 class Logic(QD_OpNode):
     MIN_INPUTS = 2
 
-    def __init__(self, title: str = "Logic", parent=None, in_count: int = 2):
+    def __init__(self, title: str = "逻辑运算", parent=None, in_count: int = 2):
         if in_count < self.MIN_INPUTS:
             in_count = self.MIN_INPUTS
         super().__init__(title=title, parent=parent, in_sockets=[], out_sockets=[])
