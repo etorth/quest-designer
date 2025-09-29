@@ -14,6 +14,12 @@ from PySide6.QtWidgets import QGraphicsObject, QGraphicsItem
 from PySide6.QtGui import QPainter, QPen, QBrush, QColor, QFont
 from PySide6.QtCore import QRectF, Qt
 
+# Palette constants (centralize for easier theme tweaks)
+_NODE_BASE_COLOR = QColor("#272b30")      # Darker than previous #3a3f44
+_NODE_BASE_SELECTED = QColor("#2b6fe6")   # Slightly adjusted selection blue
+_NODE_BORDER_COLOR = QColor("#222")
+_NODE_TEXT_COLOR = QColor("#ffffff")
+
 
 class QD_Node(QGraphicsObject):
     def __init__(self, title: str = "Node", width: float = 140, height: float = 70, parent=None):
@@ -37,20 +43,21 @@ class QD_Node(QGraphicsObject):
     def paint(self, painter: QPainter, option, widget=None):  # noqa: D401
         rect = QRectF(0, 0, self._w, self._h)
 
-        # Base colors
-        base_color = QColor("#3a3f44")
+        # Base colors (updated palette logic)
+        base_color = _NODE_BASE_COLOR
         if self._hover and not self.isSelected():
+            # Lighten slightly on hover
             base_color = base_color.lighter(120)
         if self.isSelected():
-            base_color = QColor("#2d68ff")
+            base_color = _NODE_BASE_SELECTED
 
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-        painter.setPen(QPen(QColor("#222"), 1))
+        painter.setPen(QPen(_NODE_BORDER_COLOR, 1))
         painter.setBrush(QBrush(base_color))
         painter.drawRoundedRect(rect, 10, 10)
 
         # Title text
-        painter.setPen(QColor("#ffffff"))
+        painter.setPen(_NODE_TEXT_COLOR)
         font: QFont = painter.font()
         font.setBold(True)
         font.setPointSizeF(max(font.pointSizeF() * 0.9, 8))

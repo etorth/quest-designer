@@ -15,9 +15,10 @@ from PySide6.QtCore import QRectF
 class QD_GfxScene(QGraphicsScene):
     DEFAULT_RECT = (-2000, -2000, 4000, 4000)
     # --- Color palette (tweakable) ---
-    _BG_COLOR = QColor(0x2f, 0x31, 0x36)          # Neutral dark grey (comfortable, low contrast)
-    _GRID_MINOR = QColor(0x3b, 0x3e, 0x44)        # Subtle minor lines
-    _GRID_MAJOR = QColor(0x4a, 0x4f, 0x55)        # Slightly brighter major lines
+    # Lightened background (was 2f3136). Slightly higher luminance for contrast with darker nodes.
+    _BG_COLOR = QColor(0x37, 0x39, 0x3f)          # lighter neutral grey
+    _GRID_MINOR = QColor(0x43, 0x46, 0x4c)        # adjusted to stay subtle over lighter bg
+    _GRID_MAJOR = QColor(0x54, 0x59, 0x5f)        # slightly brighter major lines
 
     def __init__(self, parent=None, scene_rect: Optional[QRectF] = None, grid_step: int = 50):
         # Initialize base scene rectangle (mirrors previous hard‑coded values)
