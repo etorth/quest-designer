@@ -5,6 +5,7 @@ from qdmainwindow import QD_MainWindow
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
+
     mainWindow = QD_MainWindow()
     mainWindow.show()
 
