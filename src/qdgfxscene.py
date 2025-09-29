@@ -5,7 +5,7 @@ QD_GfxScene centralizes custom rendering / behaviors (grid, future snapping,
 context menus, selection helpers, etc.). QD_MdiWindow uses this instead of a
 plain QGraphicsScene so later enhancements remain localized here.
 """
-from typing import Optional, Callable, Dict, TYPE_CHECKING
+from typing import Optional, Callable, Dict, TYPE_CHECKING, cast  # added cast
 from PySide6.QtWidgets import QGraphicsScene, QMenu
 from PySide6.QtGui import QPainter, QPen, QColor, QTransform
 from PySide6.QtCore import QRectF, QPointF, Qt  # Added Qt
@@ -54,12 +54,12 @@ class QD_GfxScene(QGraphicsScene):
 
     @staticmethod
     def _factory_enter():  # noqa: D401
-        from nodes.state.primitives.enter import Enter  # updated path
+        from nodes import Enter  # use re-export from nodes package
         return Enter()
 
     @staticmethod
     def _factory_exit():  # noqa: D401
-        from nodes.state.primitives.exit import Exit  # updated path
+        from nodes import Exit  # use re-export from nodes package
         return Exit()
 
     def _spawn_node(self, label: str, scene_pos: QPointF):
@@ -164,13 +164,14 @@ class QD_GfxScene(QGraphicsScene):
             # If we are already connecting, try to finalize on compatible socket click
             if self._connecting_edge is not None and self._connecting_socket is not None:
                 if isinstance(item, QD_NodeSocket):
-                    if item is self._connecting_socket:
+                    sock_item = cast(QD_NodeSocket, item)
+                    if sock_item is self._connecting_socket:
                         # Clicking start socket again does nothing (ESC required to cancel)
                         event.accept()
                         return
-                    if self._sockets_compatible(self._connecting_socket, item):
+                    if self._sockets_compatible(self._connecting_socket, sock_item):
                         # Finalize
-                        self._connecting_edge.finalize_with(item)
+                        self._connecting_edge.finalize_with(sock_item)
                         self._connecting_edge.update_path()
                         # Clear highlights
                         try:
@@ -178,7 +179,7 @@ class QD_GfxScene(QGraphicsScene):
                         except Exception:
                             pass
                         try:
-                            item.set_highlight(False)
+                            sock_item.set_highlight(False)
                         except Exception:
                             pass
                         self._clear_hover_target()
@@ -195,12 +196,12 @@ class QD_GfxScene(QGraphicsScene):
             # Not currently connecting: maybe start a new connection
             if isinstance(item, QD_NodeSocket) and self._connecting_edge is None:
                 # Start provisional edge (multi-connection: no occupancy check)
-                self._connecting_socket = item
-                edge = QD_Edge(begin=item)
+                self._connecting_socket = cast(QD_NodeSocket, item)
+                edge = QD_Edge(begin=self._connecting_socket)
                 self._connecting_edge = edge
                 self.addItem(edge)
                 edge.update_dynamic_end(event.scenePos())
-                item.set_highlight(True)
+                self._connecting_socket.set_highlight(True)
                 event.accept()
                 return
         super().mousePressEvent(event)
