@@ -4,6 +4,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtGui import QAction
 from qdmdiwindow import QD_MdiWindow
+from qdstatewindow import QD_StateWindow
 from PySide6.QtCore import Qt
 
 
@@ -105,7 +106,7 @@ class QD_MainWindow(QMainWindow):  # Note: class name as requested
 
     # --- Project action handlers ---
     def _new_project(self):
-        mdi = QD_MdiWindow(title=f"Scene {self._mdi_seq}")
+        mdi = QD_StateWindow(title=f"Scene {self._mdi_seq}")
         self._mdi_seq += 1
         self.mdi_area.addSubWindow(mdi)
         # Connect zoom signal

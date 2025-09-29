@@ -5,22 +5,18 @@ Represents an ending point (drain) in the quest graph. It has:
 - Exactly one input socket
 - No output sockets
 
-Future behavior can include validation ensuring at least one incoming edge,
-or special visual styling to distinguish terminal nodes.
+Inherits from QD_StateNode (state-layer semantic base).
 """
-from __future__ import annotations
 
-from qdnode import QD_Node  # type: ignore
+from ...qdstatenode import QD_StateNode  # changed base import
 from qdnodesocket import QD_NodeSocket, SocketDirection  # type: ignore
 
 __all__ = ["Exit"]
 
 
-class Exit(QD_Node):
+class Exit(QD_StateNode):  # changed base class
     def __init__(self, title: str = "Exit", parent=None):
-        # Provide explicit empty out_sockets list; will add 1 IN socket after init.
         super().__init__(title=title, parent=parent, in_sockets=[], out_sockets=[])
-        # Create a single IN socket
         in_socket = QD_NodeSocket(SocketDirection.IN, parent=self)
         self._in_sockets = [in_socket]
         self._layout_sockets()
@@ -29,5 +25,4 @@ class Exit(QD_Node):
         if self._in_sockets:
             sock = self._in_sockets[0]
             w, h = self.size()
-            # Place center exactly on node's left edge so half-circle chord is flush
             sock.setPos(0, h / 2.0)
