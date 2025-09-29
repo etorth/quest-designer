@@ -1,0 +1,19 @@
+# Quest Designer Git Ignore
+# IDE metadata
+.idea/
+
+# Python cache / compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging (future-proof)
+build/
+dist/
+*.egg-info/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
