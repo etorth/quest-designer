@@ -6,7 +6,7 @@ context menus, selection helpers, etc.). QD_MdiWindow uses this instead of a
 plain QGraphicsScene so later enhancements remain localized here.
 """
 from typing import Optional, Callable, Dict, TYPE_CHECKING, cast  # added cast
-from PySide6.QtWidgets import QGraphicsScene, QMenu
+from PySide6.QtWidgets import QGraphicsScene  # QMenu removed
 from PySide6.QtGui import QPainter, QPen, QColor, QTransform
 from PySide6.QtCore import QRectF, QPointF, Qt  # Added Qt
 
@@ -121,18 +121,11 @@ class QD_GfxScene(QGraphicsScene):
             y += step
 
     # --- Context menu -----------------------------------------------------
-    def contextMenuEvent(self, event):  # noqa: D401
-        scene_pos = event.scenePos()
-        item = self.itemAt(scene_pos, QTransform())
-        if item is not None:
-            return super().contextMenuEvent(event)
-        menu = QMenu()
-        add_menu = menu.addMenu("Add Node")
-        for label in self.node_factory_labels():
-            act = add_menu.addAction(label)
-            act.triggered.connect(lambda _c=False, l=label, p=QPointF(scene_pos): self._spawn_node(l, p))
-        menu.exec(event.screenPos())
-        event.accept()
+    # NOTE: Removed node-creation context menu from base. Subclasses (e.g.,
+    # QD_StateScene, QD_OpScene) now provide specialized context menus.
+    # Keeping no override here so default behavior applies.
+    # def contextMenuEvent(self, event):
+    #     super().contextMenuEvent(event)
 
     # --- Edge connecting interaction (enhanced) ---------------------------
     def _clear_hover_target(self):
