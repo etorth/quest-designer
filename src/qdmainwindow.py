@@ -6,6 +6,7 @@ from PySide6.QtGui import QAction
 from qdmdiwindow import QD_MdiWindow
 from qdstatewindow import QD_StateWindow
 from PySide6.QtCore import Qt
+from qdgfxview import QD_GfxView  # NEW import for isinstance check
 
 
 class QD_MainWindow(QMainWindow):  # Note: class name as requested
@@ -109,11 +110,11 @@ class QD_MainWindow(QMainWindow):  # Note: class name as requested
         mdi = QD_StateWindow(title=f"Scene {self._mdi_seq}")
         self._mdi_seq += 1
         self.mdi_area.addSubWindow(mdi)
-        # Connect zoom signal
+        # Connect zoom signal (guarded)
         try:
             view = mdi.graphics_view()
-            # View is QD_GfxView, has zoomChanged(float)
-            view.zoomChanged.connect(lambda _s, wref=mdi: self._update_zoom_label_from_mdi(wref))
+            if isinstance(view, QD_GfxView):
+                view.zoomChanged.connect(lambda _s, wref=mdi: self._update_zoom_label_from_mdi(wref))
         except Exception:  # pragma: no cover - defensive
             pass
         mdi.show()
