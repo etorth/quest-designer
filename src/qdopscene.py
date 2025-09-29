@@ -12,7 +12,7 @@ Potential future extensions:
 - Validation passes (unused outputs, unreachable ops)
 """
 from PySide6.QtWidgets import QMenu
-from PySide6.QtGui import QTransform
+from PySide6.QtGui import QTransform, QColor
 from PySide6.QtCore import QPointF
 from qdgfxscene import QD_GfxScene
 
@@ -22,6 +22,12 @@ __all__ = ["QD_OpScene"]
 class QD_OpScene(QD_GfxScene):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # Apply op-specific palette (cool blue tint)
+        self.set_palette(
+            QColor(0x26, 0x31, 0x3d),  # background
+            QColor(0x33, 0x3f, 0x4c),  # minor grid
+            QColor(0x44, 0x55, 0x66),  # major grid
+        )
         # Install op node factory set (now includes a basic 'Op' node placeholder and 'Calc')
         self._install_default_node_factories()
         # Placeholder for op-specific initialization

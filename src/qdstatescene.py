@@ -12,7 +12,7 @@ Planned potential extensions:
 - Per-state grouping, swimlanes, or hierarchical region drawing
 """
 from PySide6.QtWidgets import QMenu, QMdiArea, QMdiSubWindow  # NEW import for context menu
-from PySide6.QtGui import QTransform
+from PySide6.QtGui import QTransform, QColor
 from PySide6.QtCore import QPointF, Qt
 from qdgfxscene import QD_GfxScene  # ensure base imported
 from qdopwindow import QD_OpWindow  # NEW
@@ -25,6 +25,12 @@ __all__ = ["QD_StateScene"]
 class QD_StateScene(QD_GfxScene):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # Apply state-specific palette (slight green tint)
+        self.set_palette(
+            QColor(0x30, 0x39, 0x34),  # background
+            QColor(0x3b, 0x46, 0x40),  # minor grid
+            QColor(0x4c, 0x59, 0x52),  # major grid
+        )
         # Install default state node factories (moved from base scene)
         self._install_default_node_factories()
         # Mapping: state_index -> QD_OpWindow (to avoid spawning duplicates)

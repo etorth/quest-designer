@@ -41,6 +41,13 @@ class QD_GfxScene(QGraphicsScene):
         self._connecting_socket: Optional[QD_NodeSocket] = None  # start socket (IN or OUT)
         self._hover_target_socket: Optional[QD_NodeSocket] = None  # currently highlighted potential target
 
+    # --- Palette configuration -------------------------------------------
+    def set_palette(self, bg: QColor, minor: QColor, major: QColor):  # noqa: D401
+        """Override the scene/grid colors on a per-instance basis."""
+        self._BG_COLOR = bg
+        self._GRID_MINOR = minor
+        self._GRID_MAJOR = major
+
     # --- Node factory management -----------------------------------------
     def register_node_type(self, label: str, factory: Callable[[], 'QD_Node']):  # noqa: D401
         self._node_factories[label] = factory
