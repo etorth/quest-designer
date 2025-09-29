@@ -13,7 +13,6 @@ Future enhancements (not implemented yet):
 - Zoom indicator signal
 - Middle-mouse panning
 """
-from __future__ import annotations
 
 from PySide6.QtWidgets import QGraphicsView
 from PySide6.QtGui import QWheelEvent, QPainter, QTransform, QMouseEvent, QCursor
