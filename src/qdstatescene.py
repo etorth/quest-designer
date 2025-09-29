@@ -23,8 +23,15 @@ __all__ = ["QD_StateScene"]
 class QD_StateScene(QD_GfxScene):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # Install default state node factories (moved from base scene)
+        self._install_default_node_factories()
         # Placeholder for future state-scene initialization logic
         # e.g., self._ensure_enter_node()
+
+    def _install_default_node_factories(self):  # noqa: D401
+        # Register default state primitives (Enter/Exit)
+        self.register_node_type("Enter", self._factory_enter)
+        self.register_node_type("Exit", self._factory_exit)
 
     # Example placeholder hook for future logic
     def ensure_root(self):  # noqa: D401

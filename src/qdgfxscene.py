@@ -35,16 +35,18 @@ class QD_GfxScene(QGraphicsScene):
         self._grid_step = grid_step
         self.setItemIndexMethod(QGraphicsScene.ItemIndexMethod.NoIndex)
         self._node_factories: Dict[str, Callable[[], 'QD_Node']] = {}
-        self._install_default_node_factories()
+        # NOTE: default node factories moved to QD_StateScene; base no longer installs any by default.
+        # self._install_default_node_factories()
         # --- Edge connecting state ---
         self._connecting_edge: Optional[QD_Edge] = None
         self._connecting_socket: Optional[QD_NodeSocket] = None  # start socket (IN or OUT)
         self._hover_target_socket: Optional[QD_NodeSocket] = None  # currently highlighted potential target
 
     # --- Node factory management -----------------------------------------
-    def _install_default_node_factories(self):
-        self.register_node_type("Enter", self._factory_enter)
-        self.register_node_type("Exit", self._factory_exit)
+    # def _install_default_node_factories(self):
+    #     """(Removed) Was installing Enter/Exit by default; now handled in specialized subclasses."""
+    #     self.register_node_type("Enter", self._factory_enter)
+    #     self.register_node_type("Exit", self._factory_exit)
 
     def register_node_type(self, label: str, factory: Callable[[], 'QD_Node']):  # noqa: D401
         self._node_factories[label] = factory
