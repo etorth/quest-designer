@@ -34,11 +34,11 @@ class QD_OpScene(QD_GfxScene):
 
     def _install_default_node_factories(self):  # noqa: D401
         """Register default operational primitives (Calc + Level + HasItem + Logic + Compare)."""
-        self.register_node_type("Calc", self._factory_calc)
-        self.register_node_type("Level", self._factory_level)
-        self.register_node_type("HasItem", self._factory_hasitem)
-        self.register_node_type("Logic", self._factory_logic)
-        self.register_node_type("Compare", self._factory_compare)  # NEW
+        self.register_node_type("等级", self._factory_level)
+        self.register_node_type("物品", self._factory_hasitem)
+        self.register_node_type("四则运算", self._factory_calc)
+        self.register_node_type("关系运算", self._factory_compare)
+        self.register_node_type("逻辑运算", self._factory_logic)
 
     @staticmethod
     def _factory_calc():  # noqa: D401
