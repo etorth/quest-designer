@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Math operation nodes package."""
 from .calc import Calc  # noqa: F401
-from .logic import Logic  # NEW import
+from .logic import Logic  # noqa: F401
+from .compare import Compare  # NEW import
 
-__all__ = ["Calc", "Logic"]
+__all__ = ["Calc", "Logic", "Compare"]
