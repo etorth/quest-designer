@@ -28,14 +28,15 @@ class QD_OpScene(QD_GfxScene):
             QColor(0x33, 0x3f, 0x4c),  # minor grid
             QColor(0x44, 0x55, 0x66),  # major grid
         )
-        # Install op node factory set (now includes a basic 'Calc' + 'Level')
+        # Install op node factory set (now includes a basic 'Calc' + 'Level' + 'HasItem')
         self._install_default_node_factories()
         # Placeholder for op-specific initialization
 
     def _install_default_node_factories(self):  # noqa: D401
-        """Register default operational primitives (Calc + Level)."""
+        """Register default operational primitives (Calc + Level + HasItem)."""
         self.register_node_type("Calc", self._factory_calc)
-        self.register_node_type("Level", self._factory_level)  # NEW registration
+        self.register_node_type("Level", self._factory_level)
+        self.register_node_type("HasItem", self._factory_hasitem)  # NEW
 
     @staticmethod
     def _factory_calc():  # noqa: D401
@@ -43,9 +44,14 @@ class QD_OpScene(QD_GfxScene):
         return Calc()
 
     @staticmethod
-    def _factory_level():  # noqa: D401 NEW factory
+    def _factory_level():  # noqa: D401
         from nodes.op.game import Level
         return Level()
+
+    @staticmethod
+    def _factory_hasitem():  # noqa: D401 NEW factory
+        from nodes.op.game import HasItem
+        return HasItem()
 
     # Example future hook
     def analyze(self):  # noqa: D401
