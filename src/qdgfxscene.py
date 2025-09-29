@@ -13,6 +13,7 @@ from PySide6.QtCore import QRectF, QPointF, Qt  # Added Qt
 # --- New imports for edge-connecting feature ---
 from qdnodesocket import QD_NodeSocket, SocketDirection  # type: ignore
 from qdedge import QD_Edge  # type: ignore
+from qdnode import QD_Node  # runtime import for deletion isinstance checks
 
 if TYPE_CHECKING:  # type-only imports to satisfy analyzer without runtime cycles
     from qdnode import QD_Node
@@ -225,12 +226,77 @@ class QD_GfxScene(QGraphicsScene):
         # Release no longer finalizes or cancels connections; let base handle selection, etc.
         super().mouseReleaseEvent(event)
 
+    def _delete_selected_items(self):
+        """Delete selected edges and nodes.
+
+        Order: collect all edges (explicitly selected + those attached to selected nodes),
+        detach & remove them, then remove nodes. Cancels in-progress connection if its
+        start socket belongs to a node being deleted.
+        """
+        selected = list(self.selectedItems())
+        if not selected:
+            return
+        edges_to_delete: set[QD_Edge] = set()
+        nodes_to_delete: list[QD_Node] = []
+
+        # Collect explicit selections
+        for item in selected:
+            if isinstance(item, QD_Edge):
+                edges_to_delete.add(item)
+            elif isinstance(item, QD_Node):
+                nodes_to_delete.append(item)
+
+        # Collect edges attached to nodes
+        for node in nodes_to_delete:
+            try:
+                for sock in node.input_sockets():
+                    for e in sock.edges():
+                        edges_to_delete.add(e)
+                for sock in node.output_sockets():
+                    for e in sock.edges():
+                        edges_to_delete.add(e)
+            except Exception:  # pragma: no cover
+                pass
+
+        # If a connecting edge in progress originates from a soon-to-be-deleted node, cancel it first
+        try:
+            if self._connecting_edge is not None and self._connecting_socket is not None:
+                parent_node = self._connecting_socket.parentItem()
+                if parent_node in nodes_to_delete:
+                    self._cancel_connection()
+        except Exception:  # pragma: no cover
+            pass
+
+        # Remove edges
+        for edge in list(edges_to_delete):
+            try:
+                edge.detach()
+            except Exception:  # pragma: no cover
+                pass
+            try:
+                self.removeItem(edge)
+            except Exception:  # pragma: no cover
+                pass
+
+        # Remove nodes
+        for node in nodes_to_delete:
+            try:
+                self.removeItem(node)
+            except Exception:  # pragma: no cover
+                pass
+
     def keyPressEvent(self, event):  # noqa: D401
-        # ESC still cancels
+        # ESC cancels an in-progress connection
         try:
             from PySide6.QtCore import Qt as _Qt
-            if event.key() == _Qt.Key.Key_Escape and self._connecting_edge is not None:
+            key = event.key()
+            if key == _Qt.Key.Key_Escape and self._connecting_edge is not None:
                 self._cancel_connection()
+                event.accept()
+                return
+            # Delete / Backspace removes selected edges and nodes
+            if key in (_Qt.Key.Key_Delete, _Qt.Key.Key_Backspace):
+                self._delete_selected_items()
                 event.accept()
                 return
         except Exception:  # pragma: no cover
