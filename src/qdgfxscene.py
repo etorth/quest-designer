@@ -53,7 +53,7 @@ class QD_GfxScene(QGraphicsScene):
         self._node_factories[label] = factory
 
     def node_factory_labels(self):  # noqa: D401
-        return sorted(self._node_factories.keys())
+        return self._node_factories.keys()
 
     def _spawn_node(self, label: str, scene_pos: QPointF):
         factory = self._node_factories.get(label)

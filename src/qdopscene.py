@@ -76,7 +76,7 @@ class QD_OpScene(QD_GfxScene):
         if item is not None:
             return super().contextMenuEvent(event)
         menu = QMenu()
-        add_menu = menu.addMenu("Add Op Node")
+        add_menu = menu.addMenu("添加节点")
         for label in self.node_factory_labels():
             act = add_menu.addAction(label)
             act.triggered.connect(lambda _c=False, l=label, p=QPointF(scene_pos): self._spawn_node(l, p))
