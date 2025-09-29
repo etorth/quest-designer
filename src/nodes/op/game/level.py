@@ -41,7 +41,6 @@ class Level(QD_OpNode):
         self._spin.setFixedWidth(60)
 
         self._label = QLabel("级", container)
-        # Give label a larger fixed width for readability/alignment
         self._label.setFixedWidth(24)
 
         layout.addWidget(self._combo)
