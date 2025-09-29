@@ -4,10 +4,11 @@
 QD_MdiWindow encapsulates a QGraphicsScene + QGraphicsView pair prepared for
 future quest node / edge graphics items.
 """
-from PySide6.QtWidgets import QMdiSubWindow, QGraphicsScene, QGraphicsView
+from PySide6.QtWidgets import QMdiSubWindow, QGraphicsView
 from PySide6.QtGui import QPainter, QPen, QColor
 from PySide6.QtCore import Qt
 from qdnode import QD_Node  # Added import
+from gdgfxscene import QD_GfxScene  # NEW: custom graphics scene
 
 
 class QD_MdiWindow(QMdiSubWindow):
@@ -21,10 +22,8 @@ class QD_MdiWindow(QMdiSubWindow):
 
     # --- Initialization helpers ---
     def _init_scene_view(self):
-        self.scene = QGraphicsScene(self)
-        # Large logical area for designing quests
-        self.scene.setSceneRect(-2000, -2000, 4000, 4000)
-
+        # Use custom scene class instead of raw QGraphicsScene
+        self.scene = QD_GfxScene(self)
         self.view = QGraphicsView(self.scene)
         self._configure_view()
         self.setWidget(self.view)
@@ -46,7 +45,11 @@ class QD_MdiWindow(QMdiSubWindow):
 
     # --- Optional utilities ---
     def add_demo_grid(self, step: int = 50, extent: int = 500, color: str = "#888"):
-        """Draw a lightweight grid. Call manually if desired."""
+        """Draw a lightweight grid. Call manually if desired.
+
+        NOTE: QD_GfxScene already draws a background grid; this method remains
+        for experimentation (adds grid as items instead of background paint).
+        """
         from PySide6.QtWidgets import QGraphicsLineItem
         pen = QPen(QColor(color))
         for x in range(-extent, extent + 1, step):
@@ -59,8 +62,8 @@ class QD_MdiWindow(QMdiSubWindow):
             self.scene.addItem(line)
 
     # Public accessors (optional convenience)
-    def graphics_scene(self) -> QGraphicsScene:  # noqa: D401
-        """Return the underlying QGraphicsScene."""
+    def graphics_scene(self) -> QD_GfxScene:  # noqa: D401
+        """Return the underlying QD_GfxScene."""
         return self.scene
 
     def graphics_view(self) -> QGraphicsView:  # noqa: D401
