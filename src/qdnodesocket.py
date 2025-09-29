@@ -9,6 +9,8 @@ Design goals:
 - Distinguish IN vs OUT via direction enum and color accent
 - Hover + selection visual feedback (selection optional for now)
 - Easily embeddable inside a QD_Node (parented positioning)
+- (NEW) Direction immutable after construction
+- (NEW) Parent is mandatory (no orphan sockets)
 
 Future extensions (not implemented yet):
 - Edge connection logic (drag to connect)
@@ -43,9 +45,11 @@ _SOCKET_BORDER_HOVER = QColor("#eeeeee")
 class QD_NodeSocket(QGraphicsObject):
     RADIUS = 6.0
 
-    def __init__(self, direction: SocketDirection, parent: Optional[QGraphicsItem] = None):
+    def __init__(self, direction: SocketDirection, parent: Optional[QGraphicsItem]):
+        if parent is None:
+            raise ValueError("QD_NodeSocket requires a non-null parent QGraphicsItem at creation")
         super().__init__(parent)
-        self._direction = direction
+        self._direction = direction  # immutable after construction
         self._hover = False
 
         # Interaction flags (movable disabled; selection optional)
@@ -58,11 +62,6 @@ class QD_NodeSocket(QGraphicsObject):
     # --- API --------------------------------------------------------------
     def direction(self) -> SocketDirection:
         return self._direction
-
-    def setDirection(self, direction: SocketDirection):  # noqa: D401
-        if self._direction != direction:
-            self._direction = direction
-            self.update()
 
     # --- QGraphicsItem overrides -----------------------------------------
     def boundingRect(self) -> QRectF:  # noqa: D401
