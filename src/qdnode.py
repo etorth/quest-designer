@@ -9,6 +9,7 @@ It provides:
 - Basic movable/selectable flags
 - (NEW) Lists of input/output sockets (may be empty or None)
 - (NEW) Validation of provided socket direction lists
+- (NEW) Edge path refresh when node position changes
 
 Future extensions can add sockets, I/O ports, custom data, context menus, etc.
 """
@@ -130,5 +131,19 @@ class QD_Node(QGraphicsObject):
         sock = socket or QD_NodeSocket(SocketDirection.OUT, parent=self)
         self._out_sockets.append(sock)
         return sock
+
+    def itemChange(self, change, value):  # noqa: D401
+        try:
+            if change == QGraphicsItem.GraphicsItemChange.ItemPositionHasChanged:
+                # Update all connected edge paths since socket positions shifted
+                for sock in (self._in_sockets or []):
+                    for edge in sock.edges():
+                        edge.update_path()
+                for sock in (self._out_sockets or []):
+                    for edge in sock.edges():
+                        edge.update_path()
+        except Exception:  # pragma: no cover - defensive
+            pass
+        return super().itemChange(change, value)
 
 __all__ = ["QD_Node"]

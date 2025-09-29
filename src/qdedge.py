@@ -17,13 +17,8 @@ Core behaviors:
   second socket has OUT direction and first was IN, they are swapped to ensure
   logical OUT -> IN visual ordering (non-destructive orientation pass).
 - Visual feedback for selection & different status colors.
-
-Future extensions (not yet implemented):
-- Edge labels / execution types
-- Hit shape refinement for easier selection
-- Dynamic updates when sockets move (currently requires manual update_path call)
-- Validation (prevent multiple connections if socket disallows it)
-- Hover effects & context menu
+- (NEW) Registers itself with sockets for connection tracking.
+- (NEW) detach() convenience for future deletion workflow.
 """
 
 from enum import Enum, auto
@@ -70,13 +65,23 @@ class QD_Edge(QGraphicsPathItem):
 
     # --- Socket management ------------------------------------------------
     def set_begin_socket(self, socket: QD_NodeSocket):
+        if self._begin is socket:
+            return
+        if self._begin is not None:
+            self._begin.remove_edge(self)
         self._begin = socket
+        socket.add_edge(self)
         self._auto_orient()
         self._update_status_after_socket_change()
         self.update_path()
 
     def set_end_socket(self, socket: QD_NodeSocket):
+        if self._end is socket:
+            return
+        if self._end is not None:
+            self._end.remove_edge(self)
         self._end = socket
+        socket.add_edge(self)
         self._auto_orient()
         self._update_status_after_socket_change()
         self.update_path()
@@ -91,6 +96,17 @@ class QD_Edge(QGraphicsPathItem):
     def mark_deleting(self):
         self._status = EdgeStatus.DELETING
         self.update()
+
+    def detach(self):  # NEW convenience
+        if self._begin:
+            self._begin.remove_edge(self)
+        if self._end:
+            self._end.remove_edge(self)
+        self._begin = None
+        self._end = None
+        self._status = EdgeStatus.CONNECTING
+        self._temp_pos = None
+        self.update_path()
 
     # --- Status / orientation ---------------------------------------------
     def status(self) -> EdgeStatus:
@@ -205,4 +221,3 @@ class QD_Edge(QGraphicsPathItem):
 
     def is_deleting(self) -> bool:  # noqa: D401
         return self._status == EdgeStatus.DELETING
-
