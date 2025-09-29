@@ -24,6 +24,9 @@ from qdnodesocket import QD_NodeSocket, SocketDirection  # NEW import
 _NODE_BASE_COLOR = QColor("#272b30")      # Darker than previous #3a3f44
 _NODE_BASE_SELECTED = QColor("#2b6fe6")   # Slightly adjusted selection blue
 _NODE_BORDER_COLOR = QColor("#222")
+# NEW: distinct border colors
+_NODE_BORDER_HOVER = QColor("#444")
+_NODE_BORDER_SELECTED = QColor("#5c9dff")
 _NODE_TEXT_COLOR = QColor("#ffffff")
 
 # Layout constants for embedded widget support (NEW)
@@ -83,9 +86,18 @@ class QD_Node(QGraphicsObject):
             base_color = base_color.lighter(120)
         if self.isSelected():
             base_color = _NODE_BASE_SELECTED
-
+        # NEW: dynamic border color & thickness
+        if self.isSelected():
+            border_color = _NODE_BORDER_SELECTED
+            border_width = 2
+        elif self._hover:
+            border_color = _NODE_BORDER_HOVER
+            border_width = 1.2
+        else:
+            border_color = _NODE_BORDER_COLOR
+            border_width = 1
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-        painter.setPen(QPen(_NODE_BORDER_COLOR, 1))
+        painter.setPen(QPen(border_color, border_width))  # UPDATED
         painter.setBrush(QBrush(base_color))
         painter.drawRoundedRect(rect, 10, 10)
 
@@ -95,7 +107,7 @@ class QD_Node(QGraphicsObject):
             painter.setBrush(QBrush(base_color.darker(110)))
             painter.setPen(Qt.PenStyle.NoPen)
             painter.drawRoundedRect(title_rect.adjusted(0, 0, 0, 6), 10, 10)  # slight rounding
-            painter.setPen(QPen(_NODE_BORDER_COLOR, 1))
+            painter.setPen(QPen(border_color, border_width))  # ensure consistent border after title bar
 
         # Title text
         painter.setPen(_NODE_TEXT_COLOR)
@@ -104,7 +116,7 @@ class QD_Node(QGraphicsObject):
         font.setPointSizeF(max(font.pointSizeF() * 0.9, 8))
         painter.setFont(font)
         painter.drawText(QRectF(8, 4, self._w - 16, _TITLE_BAR_HEIGHT - 8),
-                         Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, self._title)
+                         Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter, self._title)
 
     # --- Hover events ---
     def hoverEnterEvent(self, event):  # noqa: D401
@@ -155,7 +167,6 @@ class QD_Node(QGraphicsObject):
         self._proxy.setWidget(widget)
         # Determine placement rectangle
         y0 = _TITLE_BAR_HEIGHT
-        inner_w = max(10, self._w - padding * 2)
         widget.resize(widget.sizeHint())
         wsize = widget.size()
         if auto_resize:
@@ -166,8 +177,7 @@ class QD_Node(QGraphicsObject):
                 self._w = needed_w
             if needed_h > self._h:
                 self._h = needed_h
-        # Center horizontally within interior region
-        x = padding + max(0, (self._w - padding * 2 - wsize.width()) / 2)
+        x = padding + max(0.0, (self._w - padding * 2 - wsize.width()) / 2.0)
         self._proxy.setPos(x, y0 + padding)
         self.prepareGeometryChange()
         self.update()
