@@ -27,6 +27,7 @@ class QD_MainWindow(QMainWindow):  # Note: class name as requested
     def _create_mdi_area(self):
         # Central MDI area starts empty
         self.mdi_area = QMdiArea()
+        self.mdi_area.setViewMode(QMdiArea.ViewMode.TabbedView)
         self.setCentralWidget(self.mdi_area)
 
     def _create_menubar(self):
