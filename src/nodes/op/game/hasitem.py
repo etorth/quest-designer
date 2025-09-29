@@ -14,7 +14,7 @@ __all__ = ["HasItem"]
 
 
 class HasItem(QD_OpNode):
-    def __init__(self, title: str = "HasItem", parent=None):
+    def __init__(self, title: str = "物品", parent=None):
         # Initialize base with explicit empty socket lists so we can construct manually
         super().__init__(title=title, parent=parent, in_sockets=[], out_sockets=[])
         # One input (flow comes in) and one output (flow continues if condition passes)

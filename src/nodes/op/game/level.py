@@ -13,7 +13,7 @@ __all__ = ["Level"]
 
 
 class Level(QD_OpNode):
-    def __init__(self, title: str = "Level", parent=None):
+    def __init__(self, title: str = "等级", parent=None):
         # Initialize with explicit empty socket lists so base validation passes
         super().__init__(title=title, parent=parent, in_sockets=[], out_sockets=[])
         # One input, one output
