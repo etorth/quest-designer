@@ -6,7 +6,7 @@ future quest node / edge graphics items.
 """
 from PySide6.QtWidgets import QMdiSubWindow, QGraphicsView
 from PySide6.QtCore import Qt
-from gdgfxscene import QD_GfxScene  # custom graphics scene
+from qdgfxscene import QD_GfxScene  # renamed from gdgfxscene
 from qdgfxview import QD_GfxView  # NEW: custom zoom-capable view
 
 
