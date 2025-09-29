@@ -68,13 +68,17 @@ class QD_StateScene(QD_GfxScene):
 
     # --- Node click handling to spawn Op windows -------------------------
     def mousePressEvent(self, event):  # noqa: D401
-        # Only intercept left-clicks on a QD_StateNode itself (not its sockets)
+        # Single click should only perform normal selection logic; no op window spawn here.
+        super().mousePressEvent(event)
+
+    def mouseDoubleClickEvent(self, event):  # noqa: D401
         if event.button() == Qt.MouseButton.LeftButton:
             item = self.itemAt(event.scenePos(), QTransform())
             if isinstance(item, QD_StateNode):
                 self._open_op_window_for_state(item)
-                # Continue to super to preserve selection behavior
-        super().mousePressEvent(event)
+                event.accept()
+                return
+        super().mouseDoubleClickEvent(event)
 
     def _find_mdi_area(self) -> QMdiArea | None:
         # Ascend parents: scene -> QD_StateWindow (QMdiSubWindow) -> QMdiArea
