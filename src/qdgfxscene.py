@@ -54,12 +54,12 @@ class QD_GfxScene(QGraphicsScene):
 
     @staticmethod
     def _factory_enter():  # noqa: D401
-        from nodes import Enter  # use re-export from nodes package
+        from nodes.state.primitives.enter import Enter
         return Enter()
 
     @staticmethod
     def _factory_exit():  # noqa: D401
-        from nodes import Exit  # use re-export from nodes package
+        from nodes.state.primitives.exit import Exit
         return Exit()
 
     def _spawn_node(self, label: str, scene_pos: QPointF):
