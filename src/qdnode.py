@@ -7,12 +7,15 @@ It provides:
 - Title text
 - Hover + selection visual feedback
 - Basic movable/selectable flags
+- (NEW) Lists of input/output sockets (may be empty or None)
 
 Future extensions can add sockets, I/O ports, custom data, context menus, etc.
 """
 from PySide6.QtWidgets import QGraphicsObject, QGraphicsItem
 from PySide6.QtGui import QPainter, QPen, QBrush, QColor, QFont
 from PySide6.QtCore import QRectF, Qt
+from typing import List, Optional
+from qdnodesocket import QD_NodeSocket, SocketDirection  # NEW import
 
 # Palette constants (centralize for easier theme tweaks)
 _NODE_BASE_COLOR = QColor("#272b30")      # Darker than previous #3a3f44
@@ -22,12 +25,17 @@ _NODE_TEXT_COLOR = QColor("#ffffff")
 
 
 class QD_Node(QGraphicsObject):
-    def __init__(self, title: str = "Node", width: float = 140, height: float = 70, parent=None):
+    def __init__(self, title: str = "Node", width: float = 140, height: float = 70, parent=None,
+                 in_sockets: Optional[List[QD_NodeSocket]] = None,
+                 out_sockets: Optional[List[QD_NodeSocket]] = None):
         super().__init__(parent)
         self._title = title
         self._w = width
         self._h = height
         self._hover = False
+        # NEW socket containers (may be None or list). Use exactly what caller passes.
+        self._in_sockets: Optional[List[QD_NodeSocket]] = in_sockets if in_sockets is not None else []
+        self._out_sockets: Optional[List[QD_NodeSocket]] = out_sockets if out_sockets is not None else []
 
         # Set interactive flags individually (avoids type checker warning for bitwise OR)
         self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsMovable, True)
@@ -85,5 +93,26 @@ class QD_Node(QGraphicsObject):
 
     def size(self):  # noqa: D401
         return self._w, self._h
+
+    # --- Socket accessors (NEW) ---
+    def input_sockets(self) -> List[QD_NodeSocket]:  # noqa: D401
+        return self._in_sockets if self._in_sockets is not None else []
+
+    def output_sockets(self) -> List[QD_NodeSocket]:  # noqa: D401
+        return self._out_sockets if self._out_sockets is not None else []
+
+    def add_input_socket(self, socket: QD_NodeSocket | None = None) -> QD_NodeSocket:
+        if self._in_sockets is None:
+            self._in_sockets = []
+        sock = socket or QD_NodeSocket(SocketDirection.IN, parent=self)
+        self._in_sockets.append(sock)
+        return sock
+
+    def add_output_socket(self, socket: QD_NodeSocket | None = None) -> QD_NodeSocket:
+        if self._out_sockets is None:
+            self._out_sockets = []
+        sock = socket or QD_NodeSocket(SocketDirection.OUT, parent=self)
+        self._out_sockets.append(sock)
+        return sock
 
 __all__ = ["QD_Node"]
