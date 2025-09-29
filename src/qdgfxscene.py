@@ -35,34 +35,18 @@ class QD_GfxScene(QGraphicsScene):
         self._grid_step = grid_step
         self.setItemIndexMethod(QGraphicsScene.ItemIndexMethod.NoIndex)
         self._node_factories: Dict[str, Callable[[], 'QD_Node']] = {}
-        # NOTE: default node factories moved to QD_StateScene; base no longer installs any by default.
-        # self._install_default_node_factories()
+        # NOTE: default node factories & concrete factory helpers moved to specialized subclasses.
         # --- Edge connecting state ---
         self._connecting_edge: Optional[QD_Edge] = None
         self._connecting_socket: Optional[QD_NodeSocket] = None  # start socket (IN or OUT)
         self._hover_target_socket: Optional[QD_NodeSocket] = None  # currently highlighted potential target
 
     # --- Node factory management -----------------------------------------
-    # def _install_default_node_factories(self):
-    #     """(Removed) Was installing Enter/Exit by default; now handled in specialized subclasses."""
-    #     self.register_node_type("Enter", self._factory_enter)
-    #     self.register_node_type("Exit", self._factory_exit)
-
     def register_node_type(self, label: str, factory: Callable[[], 'QD_Node']):  # noqa: D401
         self._node_factories[label] = factory
 
     def node_factory_labels(self):  # noqa: D401
         return sorted(self._node_factories.keys())
-
-    @staticmethod
-    def _factory_enter():  # noqa: D401
-        from nodes.state.primitives.enter import Enter
-        return Enter()
-
-    @staticmethod
-    def _factory_exit():  # noqa: D401
-        from nodes.state.primitives.exit import Exit
-        return Exit()
 
     def _spawn_node(self, label: str, scene_pos: QPointF):
         factory = self._node_factories.get(label)
@@ -123,11 +107,7 @@ class QD_GfxScene(QGraphicsScene):
             y += step
 
     # --- Context menu -----------------------------------------------------
-    # NOTE: Removed node-creation context menu from base. Subclasses (e.g.,
-    # QD_StateScene, QD_OpScene) now provide specialized context menus.
-    # Keeping no override here so default behavior applies.
-    # def contextMenuEvent(self, event):
-    #     super().contextMenuEvent(event)
+    # (Handled in subclasses.)
 
     # --- Edge connecting interaction (enhanced) ---------------------------
     def _clear_hover_target(self):
@@ -144,31 +124,25 @@ class QD_GfxScene(QGraphicsScene):
             return False
         if a.direction() == b.direction():
             return False
-        # Multi-connection enabled: do not block if sockets already have edges
         return True
 
     def mousePressEvent(self, event):  # noqa: D401
-        # Right-click: if currently connecting, cancel instead of showing context menu
         if event.button() == Qt.MouseButton.RightButton:
             if self._connecting_edge is not None:
                 self._cancel_connection()
                 event.accept()
                 return
-        if event.button() == Qt.MouseButton.LeftButton:  # Left button
+        if event.button() == Qt.MouseButton.LeftButton:
             item = self.itemAt(event.scenePos(), QTransform())
-            # If we are already connecting, try to finalize on compatible socket click
             if self._connecting_edge is not None and self._connecting_socket is not None:
                 if isinstance(item, QD_NodeSocket):
                     sock_item = cast(QD_NodeSocket, item)
                     if sock_item is self._connecting_socket:
-                        # Clicking start socket again does nothing (ESC required to cancel)
                         event.accept()
                         return
                     if self._sockets_compatible(self._connecting_socket, sock_item):
-                        # Finalize
                         self._connecting_edge.finalize_with(sock_item)
                         self._connecting_edge.update_path()
-                        # Clear highlights
                         try:
                             self._connecting_socket.set_highlight(False)
                         except Exception:
@@ -178,19 +152,15 @@ class QD_GfxScene(QGraphicsScene):
                         except Exception:
                             pass
                         self._clear_hover_target()
-                        # Reset state
                         self._connecting_edge = None
                         self._connecting_socket = None
                         event.accept()
                         return
-                # If clicked elsewhere (not a compatible socket) just update dynamic end to click point
                 if self._connecting_edge is not None:
                     self._connecting_edge.update_dynamic_end(event.scenePos())
                     event.accept()
                     return
-            # Not currently connecting: maybe start a new connection
             if isinstance(item, QD_NodeSocket) and self._connecting_edge is None:
-                # Start provisional edge (multi-connection: no occupancy check)
                 self._connecting_socket = cast(QD_NodeSocket, item)
                 edge = QD_Edge(begin=self._connecting_socket)
                 self._connecting_edge = edge
@@ -219,30 +189,19 @@ class QD_GfxScene(QGraphicsScene):
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):  # noqa: D401
-        # Release no longer finalizes or cancels connections; let base handle selection, etc.
         super().mouseReleaseEvent(event)
 
     def _delete_selected_items(self):
-        """Delete selected edges and nodes.
-
-        Order: collect all edges (explicitly selected + those attached to selected nodes),
-        detach & remove them, then remove nodes. Cancels in-progress connection if its
-        start socket belongs to a node being deleted.
-        """
         selected = list(self.selectedItems())
         if not selected:
             return
         edges_to_delete: set[QD_Edge] = set()
         nodes_to_delete: list[QD_Node] = []
-
-        # Collect explicit selections
         for item in selected:
             if isinstance(item, QD_Edge):
                 edges_to_delete.add(item)
             elif isinstance(item, QD_Node):
                 nodes_to_delete.append(item)
-
-        # Collect edges attached to nodes
         for node in nodes_to_delete:
             try:
                 for sock in node.input_sockets():
@@ -251,38 +210,31 @@ class QD_GfxScene(QGraphicsScene):
                 for sock in node.output_sockets():
                     for e in sock.edges():
                         edges_to_delete.add(e)
-            except Exception:  # pragma: no cover
+            except Exception:
                 pass
-
-        # If a connecting edge in progress originates from a soon-to-be-deleted node, cancel it first
         try:
             if self._connecting_edge is not None and self._connecting_socket is not None:
                 parent_node = self._connecting_socket.parentItem()
                 if parent_node in nodes_to_delete:
                     self._cancel_connection()
-        except Exception:  # pragma: no cover
+        except Exception:
             pass
-
-        # Remove edges
         for edge in list(edges_to_delete):
             try:
                 edge.detach()
-            except Exception:  # pragma: no cover
+            except Exception:
                 pass
             try:
                 self.removeItem(edge)
-            except Exception:  # pragma: no cover
+            except Exception:
                 pass
-
-        # Remove nodes
         for node in nodes_to_delete:
             try:
                 self.removeItem(node)
-            except Exception:  # pragma: no cover
+            except Exception:
                 pass
 
     def keyPressEvent(self, event):  # noqa: D401
-        # ESC cancels an in-progress connection or Delete/Backspace removes selection
         key = event.key()
         try:
             if key == Qt.Key.Key_Escape and self._connecting_edge is not None:
@@ -293,7 +245,7 @@ class QD_GfxScene(QGraphicsScene):
                 self._delete_selected_items()
                 event.accept()
                 return
-        except Exception:  # pragma: no cover
+        except Exception:
             pass
         super().keyPressEvent(event)
 

@@ -22,7 +22,18 @@ __all__ = ["QD_OpScene"]
 class QD_OpScene(QD_GfxScene):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # Install op node factory set (now includes a basic 'Op' node placeholder)
+        self._install_default_node_factories()
         # Placeholder for op-specific initialization
+
+    def _install_default_node_factories(self):  # noqa: D401
+        """Register default operational primitives (currently a generic QD_OpNode)."""
+        self.register_node_type("Op", self._factory_op_node)
+
+    @staticmethod
+    def _factory_op_node():  # noqa: D401
+        from nodes.qdopnode import QD_OpNode
+        return QD_OpNode(title="Op")
 
     # Example future hook
     def analyze(self):  # noqa: D401

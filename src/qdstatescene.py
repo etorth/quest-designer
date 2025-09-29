@@ -33,6 +33,16 @@ class QD_StateScene(QD_GfxScene):
         self.register_node_type("Enter", self._factory_enter)
         self.register_node_type("Exit", self._factory_exit)
 
+    @staticmethod
+    def _factory_enter():  # noqa: D401
+        from nodes.state.primitives.enter import Enter
+        return Enter()
+
+    @staticmethod
+    def _factory_exit():  # noqa: D401
+        from nodes.state.primitives.exit import Exit
+        return Exit()
+
     # Example placeholder hook for future logic
     def ensure_root(self):  # noqa: D401
         """Ensure at least one 'Enter' node exists (future implementation)."""
