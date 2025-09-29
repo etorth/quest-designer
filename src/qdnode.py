@@ -10,10 +10,11 @@ It provides:
 - (NEW) Lists of input/output sockets (may be empty or None)
 - (NEW) Validation of provided socket direction lists
 - (NEW) Edge path refresh when node position changes
+- (NEW) Optional embedded QWidget content via QGraphicsProxyWidget
 
 Future extensions can add sockets, I/O ports, custom data, context menus, etc.
 """
-from PySide6.QtWidgets import QGraphicsObject, QGraphicsItem
+from PySide6.QtWidgets import QGraphicsObject, QGraphicsItem, QGraphicsProxyWidget, QWidget  # UPDATED import
 from PySide6.QtGui import QPainter, QPen, QBrush, QColor, QFont
 from PySide6.QtCore import QRectF, Qt
 from typing import List, Optional
@@ -25,6 +26,10 @@ _NODE_BASE_SELECTED = QColor("#2b6fe6")   # Slightly adjusted selection blue
 _NODE_BORDER_COLOR = QColor("#222")
 _NODE_TEXT_COLOR = QColor("#ffffff")
 
+# Layout constants for embedded widget support (NEW)
+_TITLE_BAR_HEIGHT = 22  # space reserved for title text
+_CONTENT_PADDING = 6    # inner padding around embedded widget
+
 
 class QD_Node(QGraphicsObject):
     def __init__(self, title: str = "Node", width: float = 140, height: float = 70, parent=None,
@@ -35,6 +40,9 @@ class QD_Node(QGraphicsObject):
         self._w = width
         self._h = height
         self._hover = False
+        # Embedded widget proxy (NEW)
+        self._proxy: QGraphicsProxyWidget | None = None
+        self._embedded_widget: QWidget | None = None
 
         # --- Validate provided sockets (if any) ---
         if in_sockets is not None:
@@ -81,13 +89,22 @@ class QD_Node(QGraphicsObject):
         painter.setBrush(QBrush(base_color))
         painter.drawRoundedRect(rect, 10, 10)
 
+        # Title bar area highlight (optional subtle separation) (NEW)
+        if self._embedded_widget is not None:
+            title_rect = QRectF(0, 0, self._w, _TITLE_BAR_HEIGHT)
+            painter.setBrush(QBrush(base_color.darker(110)))
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.drawRoundedRect(title_rect.adjusted(0, 0, 0, 6), 10, 10)  # slight rounding
+            painter.setPen(QPen(_NODE_BORDER_COLOR, 1))
+
         # Title text
         painter.setPen(_NODE_TEXT_COLOR)
         font: QFont = painter.font()
         font.setBold(True)
         font.setPointSizeF(max(font.pointSizeF() * 0.9, 8))
         painter.setFont(font)
-        painter.drawText(rect.adjusted(8, 6, -8, -6), Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop, self._title)
+        painter.drawText(QRectF(8, 4, self._w - 16, _TITLE_BAR_HEIGHT - 8),
+                         Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, self._title)
 
     # --- Hover events ---
     def hoverEnterEvent(self, event):  # noqa: D401
@@ -110,6 +127,54 @@ class QD_Node(QGraphicsObject):
 
     def size(self):  # noqa: D401
         return self._w, self._h
+
+    # --- Embedded widget support (NEW) ----------------------------------
+    def setEmbeddedWidget(self, widget: QWidget | None, auto_resize: bool = True, padding: int = _CONTENT_PADDING):  # noqa: D401
+        """Embed (or replace) a QWidget inside the node.
+
+        The widget is wrapped in a QGraphicsProxyWidget and positioned inside
+        the node's body below the title bar. If auto_resize is True, the node
+        resizes to fit the widget (respecting padding + title bar height).
+        Passing None removes any existing embedded widget.
+        """
+        # Remove previous
+        if self._proxy is not None:
+            try:
+                self.scene().removeItem(self._proxy)
+            except Exception:
+                pass
+            self._proxy = None
+            self._embedded_widget = None
+
+        if widget is None:
+            self.update()
+            return None
+
+        self._embedded_widget = widget
+        self._proxy = QGraphicsProxyWidget(self)
+        self._proxy.setWidget(widget)
+        # Determine placement rectangle
+        y0 = _TITLE_BAR_HEIGHT
+        inner_w = max(10, self._w - padding * 2)
+        widget.resize(widget.sizeHint())
+        wsize = widget.size()
+        if auto_resize:
+            # Expand node size if widget larger than current interior
+            needed_w = wsize.width() + padding * 2
+            needed_h = y0 + wsize.height() + padding
+            if needed_w > self._w:
+                self._w = needed_w
+            if needed_h > self._h:
+                self._h = needed_h
+        # Center horizontally within interior region
+        x = padding + max(0, (self._w - padding * 2 - wsize.width()) / 2)
+        self._proxy.setPos(x, y0 + padding)
+        self.prepareGeometryChange()
+        self.update()
+        return widget
+
+    def embeddedWidget(self) -> QWidget | None:  # noqa: D401
+        return self._embedded_widget
 
     # --- Socket accessors (NEW) ---
     def input_sockets(self) -> List[QD_NodeSocket]:  # noqa: D401
