@@ -30,3 +30,4 @@ class QD_OpWindow(QD_MdiWindow):
     def as_dict(self) -> dict:  # noqa: D401
         return {"type": self.__class__.__name__, "title": self.windowTitle()}
 
+
