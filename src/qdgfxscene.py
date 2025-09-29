@@ -286,16 +286,14 @@ class QD_GfxScene(QGraphicsScene):
                 pass
 
     def keyPressEvent(self, event):  # noqa: D401
-        # ESC cancels an in-progress connection
+        # ESC cancels an in-progress connection or Delete/Backspace removes selection
+        key = event.key()
         try:
-            from PySide6.QtCore import Qt as _Qt
-            key = event.key()
-            if key == _Qt.Key.Key_Escape and self._connecting_edge is not None:
+            if key == Qt.Key.Key_Escape and self._connecting_edge is not None:
                 self._cancel_connection()
                 event.accept()
                 return
-            # Delete / Backspace removes selected edges and nodes
-            if key in (_Qt.Key.Key_Delete, _Qt.Key.Key_Backspace):
+            if key in (Qt.Key.Key_Delete, Qt.Key.Key_Backspace):
                 self._delete_selected_items()
                 event.accept()
                 return
