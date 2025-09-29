@@ -16,12 +16,13 @@ Future extensions (not implemented yet):
 - Validation rules (single vs multi-connection)
 - Context menus
 """
+from __future__ import annotations
 
 from enum import Enum, auto
 from typing import Optional
 from PySide6.QtWidgets import QGraphicsObject, QGraphicsItem
 from PySide6.QtGui import QPainter, QPen, QBrush, QColor
-from PySide6.QtCore import QRectF, Qt
+from PySide6.QtCore import QRectF, Qt, QPointF  # added QPointF
 
 __all__ = ["QD_NodeSocket", "SocketDirection"]
 
@@ -89,11 +90,15 @@ class QD_NodeSocket(QGraphicsObject):
         painter.setBrush(Qt.BrushStyle.NoBrush)
         painter.setPen(QPen(pen_color, 1))
         if self._direction == SocketDirection.IN:
-            # Draw small inward tick on left side
-            painter.drawLine(-self.RADIUS + 1.5, -1.5, -self.RADIUS + 1.5, 1.5)
+            # Draw small inward tick on left side using QPointF overload (avoids int-only warning)
+            p1 = QPointF(-self.RADIUS + 1.5, -1.5)
+            p2 = QPointF(-self.RADIUS + 1.5, 1.5)
+            painter.drawLine(p1, p2)
         else:
             # Draw small outward tick on right side
-            painter.drawLine(self.RADIUS - 1.5, -1.5, self.RADIUS - 1.5, 1.5)
+            p1 = QPointF(self.RADIUS - 1.5, -1.5)
+            p2 = QPointF(self.RADIUS - 1.5, 1.5)
+            painter.drawLine(p1, p2)
 
     # --- Hover events -----------------------------------------------------
     def hoverEnterEvent(self, event):  # noqa: D401
@@ -116,4 +121,3 @@ class QD_NodeSocket(QGraphicsObject):
         path = QPainterPath()
         path.addEllipse(self.boundingRect())
         return path
-

@@ -8,6 +8,7 @@ It provides:
 - Hover + selection visual feedback
 - Basic movable/selectable flags
 - (NEW) Lists of input/output sockets (may be empty or None)
+- (NEW) Validation of provided socket direction lists
 
 Future extensions can add sockets, I/O ports, custom data, context menus, etc.
 """
@@ -33,7 +34,22 @@ class QD_Node(QGraphicsObject):
         self._w = width
         self._h = height
         self._hover = False
-        # NEW socket containers (may be None or list). Use exactly what caller passes.
+
+        # --- Validate provided sockets (if any) ---
+        if in_sockets is not None:
+            for sock in in_sockets:
+                if not isinstance(sock, QD_NodeSocket):
+                    raise ValueError(f"in_sockets contains non-QD_NodeSocket: {sock!r}")
+                if sock.direction() != SocketDirection.IN:
+                    raise ValueError("in_sockets contains a socket that is not IN direction")
+        if out_sockets is not None:
+            for sock in out_sockets:
+                if not isinstance(sock, QD_NodeSocket):
+                    raise ValueError(f"out_sockets contains non-QD_NodeSocket: {sock!r}")
+                if sock.direction() != SocketDirection.OUT:
+                    raise ValueError("out_sockets contains a socket that is not OUT direction")
+
+        # NEW socket containers (may be None or list). Use exactly what caller passes after validation.
         self._in_sockets: Optional[List[QD_NodeSocket]] = in_sockets if in_sockets is not None else []
         self._out_sockets: Optional[List[QD_NodeSocket]] = out_sockets if out_sockets is not None else []
 
