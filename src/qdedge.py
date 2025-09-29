@@ -25,7 +25,6 @@ Future extensions (not yet implemented):
 - Validation (prevent multiple connections if socket disallows it)
 - Hover effects & context menu
 """
-from __future__ import annotations
 
 from enum import Enum, auto
 from typing import Optional, Tuple

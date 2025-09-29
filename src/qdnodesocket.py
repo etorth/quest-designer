@@ -16,7 +16,6 @@ Future extensions (not implemented yet):
 - Validation rules (single vs multi-connection)
 - Context menus
 """
-from __future__ import annotations
 
 from enum import Enum, auto
 from typing import Optional
