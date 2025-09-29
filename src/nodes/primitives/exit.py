@@ -29,6 +29,5 @@ class Exit(QD_Node):
         if self._in_sockets:
             sock = self._in_sockets[0]
             w, h = self.size()
-            # Place at left center edge (socket center slightly outside node body)
-            sock.setPos(-sock.radius(), h / 2.0)
-
+            # Place center exactly on node's left edge so half-circle chord is flush
+            sock.setPos(0, h / 2.0)

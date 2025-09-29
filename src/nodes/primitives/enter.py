@@ -30,8 +30,6 @@ class Enter(QD_Node):
     def _layout_sockets(self):
         if self._out_sockets:
             sock = self._out_sockets[0]
-            # Place at right center edge of node
             w, h = self.size()
-            # Slight offset so center of socket aligns with edge
-            sock.setPos(w + sock.radius(), h / 2.0)
-
+            # Place center exactly on node's right edge so half-circle chord is flush
+            sock.setPos(w, h / 2.0)

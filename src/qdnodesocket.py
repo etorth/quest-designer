@@ -13,6 +13,7 @@ Design goals:
 - (NEW) Parent is mandatory (no orphan sockets)
 - (NEW) Track connected edges (single-connection policy currently enforced in scene)
 - (NEW) Highlight state for potential targets while connecting
+- (UPDATED) Render as a directional half-circle (IN = left half, OUT = right half)
 """
 from __future__ import annotations
 
@@ -92,10 +93,7 @@ class QD_NodeSocket(QGraphicsObject):
     def paint(self, painter: QPainter, option, widget=None):  # noqa: D401
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
 
-        # Base color by direction
         fill = _SOCKET_FILL_IN if self._direction == SocketDirection.IN else _SOCKET_FILL_OUT
-
-        # Hover/selection/highlight feedback
         if self._highlight:
             fill = fill.lighter(135)
         if self._hover:
@@ -107,23 +105,42 @@ class QD_NodeSocket(QGraphicsObject):
             pen_color = _SOCKET_BORDER_HIGHLIGHT
         else:
             pen_color = _SOCKET_BORDER_HOVER if (self._hover or self.isSelected()) else _SOCKET_BORDER
-        painter.setPen(QPen(pen_color, 1))
+        pen = QPen(pen_color, 1)
+        painter.setPen(pen)
         painter.setBrush(QBrush(fill))
-        painter.drawEllipse(self.boundingRect())
 
-        # Direction notch indicator (tiny wedge) - optional subtle hint
-        painter.setBrush(Qt.BrushStyle.NoBrush)
-        painter.setPen(QPen(pen_color, 1))
+        rect = self.boundingRect()
+        # QPainter angles: 0 at 3 o'clock, positive CCW; specify in 1/16 deg
         if self._direction == SocketDirection.IN:
-            # Draw small inward tick on left side using QPointF overload (avoids int-only warning)
-            p1 = QPointF(-self.RADIUS + 1.5, -1.5)
-            p2 = QPointF(-self.RADIUS + 1.5, 1.5)
-            painter.drawLine(p1, p2)
+            # Left half: from 90° to 270° (span 180°)
+            start = 90 * 16
+            span = 180 * 16
+        else:  # OUT
+            # Right half: from 270° to 90° (span 180°)
+            start = 270 * 16
+            span = 180 * 16
+        painter.drawPie(rect, start, span)
+
+    def shape(self):  # noqa: D401
+        from PySide6.QtGui import QPainterPath
+        path = QPainterPath()
+        rect = self.boundingRect()
+        if self._direction == SocketDirection.IN:
+            start = 90 * 16
+            span = 180 * 16
         else:
-            # Draw small outward tick on right side
-            p1 = QPointF(self.RADIUS - 1.5, -1.5)
-            p2 = QPointF(self.RADIUS - 1.5, 1.5)
-            painter.drawLine(p1, p2)
+            start = 270 * 16
+            span = 180 * 16
+        # Build half-circle path using arcTo
+        # arcTo expects: x, y, w, h, startAngle(deg), sweepLength(deg)
+        # Convert from 1/16 deg values
+        start_deg = start / 16.0
+        span_deg = span / 16.0
+        path.moveTo(0, 0)  # center reference (optional for hit area)
+        path.arcMoveTo(rect, start_deg)
+        path.arcTo(rect, start_deg, span_deg)
+        path.closeSubpath()
+        return path
 
     # --- Hover events -----------------------------------------------------
     def hoverEnterEvent(self, event):  # noqa: D401
@@ -139,11 +156,4 @@ class QD_NodeSocket(QGraphicsObject):
     # --- Optional convenience --------------------------------------------
     def radius(self) -> float:  # noqa: D401
         return self.RADIUS
-
-    def shape(self):  # noqa: D401
-        # Provide precise hit shape (circle)
-        from PySide6.QtGui import QPainterPath
-        path = QPainterPath()
-        path.addEllipse(self.boundingRect())
-        return path
 

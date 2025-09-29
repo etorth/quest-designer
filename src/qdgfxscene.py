@@ -8,7 +8,7 @@ plain QGraphicsScene so later enhancements remain localized here.
 from typing import Optional, Callable, Dict, TYPE_CHECKING
 from PySide6.QtWidgets import QGraphicsScene, QMenu
 from PySide6.QtGui import QPainter, QPen, QColor, QTransform
-from PySide6.QtCore import QRectF, QPointF
+from PySide6.QtCore import QRectF, QPointF, Qt  # Added Qt
 
 # --- New imports for edge-connecting feature ---
 from qdnodesocket import QD_NodeSocket, SocketDirection  # type: ignore
@@ -148,26 +148,58 @@ class QD_GfxScene(QGraphicsScene):
             return False
         if a.direction() == b.direction():
             return False
-        # single-connection policy: both must be free
-        if a.is_occupied() or b.is_occupied():
-            return False
+        # Multi-connection enabled: do not block if sockets already have edges
         return True
 
     def mousePressEvent(self, event):  # noqa: D401
-        if event.button() == 1:  # Left button
+        # Right-click: if currently connecting, cancel instead of showing context menu
+        if event.button() == Qt.MouseButton.RightButton:
+            if self._connecting_edge is not None:
+                self._cancel_connection()
+                event.accept()
+                return
+        if event.button() == Qt.MouseButton.LeftButton:  # Left button
             item = self.itemAt(event.scenePos(), QTransform())
-            if isinstance(item, QD_NodeSocket) and self._connecting_edge is None:
-                # enforce single-connection: refuse if occupied
-                if item.is_occupied():
-                    event.ignore()
+            # If we are already connecting, try to finalize on compatible socket click
+            if self._connecting_edge is not None and self._connecting_socket is not None:
+                if isinstance(item, QD_NodeSocket):
+                    if item is self._connecting_socket:
+                        # Clicking start socket again does nothing (ESC required to cancel)
+                        event.accept()
+                        return
+                    if self._sockets_compatible(self._connecting_socket, item):
+                        # Finalize
+                        self._connecting_edge.finalize_with(item)
+                        self._connecting_edge.update_path()
+                        # Clear highlights
+                        try:
+                            self._connecting_socket.set_highlight(False)
+                        except Exception:
+                            pass
+                        try:
+                            item.set_highlight(False)
+                        except Exception:
+                            pass
+                        self._clear_hover_target()
+                        # Reset state
+                        self._connecting_edge = None
+                        self._connecting_socket = None
+                        event.accept()
+                        return
+                # If clicked elsewhere (not a compatible socket) just update dynamic end to click point
+                if self._connecting_edge is not None:
+                    self._connecting_edge.update_dynamic_end(event.scenePos())
+                    event.accept()
                     return
-                # Start provisional edge from this socket
+            # Not currently connecting: maybe start a new connection
+            if isinstance(item, QD_NodeSocket) and self._connecting_edge is None:
+                # Start provisional edge (multi-connection: no occupancy check)
                 self._connecting_socket = item
                 edge = QD_Edge(begin=item)
                 self._connecting_edge = edge
                 self.addItem(edge)
                 edge.update_dynamic_end(event.scenePos())
-                item.set_highlight(True)  # indicate active
+                item.set_highlight(True)
                 event.accept()
                 return
         super().mousePressEvent(event)
@@ -175,7 +207,6 @@ class QD_GfxScene(QGraphicsScene):
     def mouseMoveEvent(self, event):  # noqa: D401
         if self._connecting_edge is not None and self._connecting_socket is not None:
             self._connecting_edge.update_dynamic_end(event.scenePos())
-            # Determine potential target under cursor
             item = self.itemAt(event.scenePos(), QTransform())
             candidate = item if isinstance(item, QD_NodeSocket) else None
             if candidate and self._sockets_compatible(self._connecting_socket, candidate):
@@ -190,20 +221,21 @@ class QD_GfxScene(QGraphicsScene):
             return
         super().mouseMoveEvent(event)
 
-    def _finalize_connection_if_valid(self, release_pos: QPointF) -> bool:
-        item = self.itemAt(release_pos, QTransform())
-        if not isinstance(item, QD_NodeSocket):
-            return False
-        if self._connecting_socket is None or self._connecting_edge is None:
-            return False
-        target = item
-        if not self._sockets_compatible(self._connecting_socket, target):
-            return False
-        # Finalize edge
-        self._connecting_edge.finalize_with(target)
-        # Ensure orientation / path updated
-        self._connecting_edge.update_path()
-        return True
+    def mouseReleaseEvent(self, event):  # noqa: D401
+        # Release no longer finalizes or cancels connections; let base handle selection, etc.
+        super().mouseReleaseEvent(event)
+
+    def keyPressEvent(self, event):  # noqa: D401
+        # ESC still cancels
+        try:
+            from PySide6.QtCore import Qt as _Qt
+            if event.key() == _Qt.Key.Key_Escape and self._connecting_edge is not None:
+                self._cancel_connection()
+                event.accept()
+                return
+        except Exception:  # pragma: no cover
+            pass
+        super().keyPressEvent(event)
 
     def _cancel_connection(self):
         if self._connecting_edge is not None:
@@ -219,38 +251,5 @@ class QD_GfxScene(QGraphicsScene):
         self._clear_hover_target()
         self._connecting_edge = None
         self._connecting_socket = None
-
-    def mouseReleaseEvent(self, event):  # noqa: D401
-        if self._connecting_edge is not None:
-            success = self._finalize_connection_if_valid(event.scenePos())
-            # clear start socket highlight either way
-            if self._connecting_socket:
-                try:
-                    self._connecting_socket.set_highlight(False)
-                except Exception:
-                    pass
-            self._clear_hover_target()
-            if not success:
-                # remove provisional edge if not completed
-                self._cancel_connection()
-            else:
-                # keep edge; reset connection state
-                self._connecting_edge = None
-                self._connecting_socket = None
-            event.accept()
-            return
-        super().mouseReleaseEvent(event)
-
-    def keyPressEvent(self, event):  # noqa: D401
-        # Allow Escape to cancel an in-progress connection
-        try:
-            from PySide6.QtCore import Qt as _Qt
-            if event.key() == _Qt.Key.Key_Escape and self._connecting_edge is not None:
-                self._cancel_connection()
-                event.accept()
-                return
-        except Exception:  # pragma: no cover - defensive
-            pass
-        super().keyPressEvent(event)
 
 __all__ = ["QD_GfxScene"]
