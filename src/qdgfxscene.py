@@ -248,7 +248,7 @@ class QD_GfxScene(QGraphicsScene):
                 self._cancel_connection()
                 event.accept()
                 return
-            if key in (Qt.Key.Key_Delete, Qt.Key.Key_Backspace):
+            if key == Qt.Key.Key_Delete:
                 self._delete_selected_items()
                 event.accept()
                 return
