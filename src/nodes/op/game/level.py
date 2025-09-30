@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 """Level operation node.
 
-Represents a game level operation placeholder with a single input and output
-socket (e.g., sequencing levels or gating flow). Future extensions could add
-properties such as difficulty, environment, or prerequisites.
+Represents a level condition / query node producing a boolean result.
+This node now has:
+- No input sockets (acts as a source)
+- Exactly one OUT socket (BOOL)
 """
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QComboBox, QSpinBox, QLabel  # NEW imports
 from qdnodesocket import QD_NodeSocket, SocketDirection, SocketType  # UPDATED import
@@ -14,14 +15,11 @@ __all__ = ["Level"]
 
 class Level(QD_OpNode):
     def __init__(self, title: str = "等级", parent=None):
-        # Initialize with explicit empty socket lists so base validation passes
+        # Initialize with explicit empty socket lists; only OUT socket created
         super().__init__(title=title, parent=parent, in_sockets=[], out_sockets=[])
-        # One input (numeric level value), one output (boolean test result)
-        self._in_sockets = [QD_NodeSocket(SocketDirection.IN, parent=self, sock_type=SocketType.DECIMAL)]
+        # Single BOOL output (result of level comparison)
         self._out_sockets = [QD_NodeSocket(SocketDirection.OUT, parent=self, sock_type=SocketType.BOOL)]
-        # Install embedded UI (combo | non-negative number | label '级')
         self._init_embedded_ui()
-        # Layout sockets AFTER embedding (node may have resized)
         self._layout_sockets()
 
     # NEW: build embedded widget ------------------------------------------------------
@@ -32,11 +30,11 @@ class Level(QD_OpNode):
         layout.setSpacing(4)
 
         self._combo = QComboBox(container)
-        self._combo.addItems(["大于", "小于", "等于", "不大于", "不小于", "不等于"])  # ADDED
+        self._combo.addItems(["大于", "小于", "等于", "不大于", "不小于", "不等于"])  # comparison relations
 
         self._spin = QSpinBox(container)
-        self._spin.setMinimum(0)        # non-negative only
-        self._spin.setMaximum(10_000)   # arbitrary upper bound
+        self._spin.setMinimum(0)
+        self._spin.setMaximum(10_000)
         self._spin.setValue(1)
         self._spin.setFixedWidth(60)
 
@@ -46,13 +44,10 @@ class Level(QD_OpNode):
         layout.addWidget(self._combo)
         layout.addWidget(self._spin)
         layout.addWidget(self._label)
-        # Embed inside node; auto_resize so node adjusts to content
         self.setEmbeddedWidget(container, auto_resize=True)
 
     def _layout_sockets(self):  # noqa: D401
         w, h = self.size()
-        # Input on left middle, output on right middle
-        if self._in_sockets:
-            self._in_sockets[0].setPos(0, h / 2)
         if self._out_sockets:
-            self._out_sockets[0].setPos(w, h / 2)
+            # Position OUT socket with +1 px offset to avoid overlap
+            self._out_sockets[0].setPos(w + 1, h / 2)

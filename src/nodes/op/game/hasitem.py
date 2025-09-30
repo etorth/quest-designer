@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """HasItem operation node.
 
-Represents a condition check or operation that determines whether the player
-(or another entity) possesses a particular item. For now this is a structural
-placeholder node with one input and one output socket. Future enhancements
-could add an embedded UI (e.g., item selector combo, quantity spin box).
+Represents a condition check that yields a boolean (does the player have a
+specific quantity of an item under a relation). This node now has:
+- No input sockets (acts as a source / query node)
+- Exactly one OUT socket of BOOL type
 """
 from qdnodesocket import QD_NodeSocket, SocketDirection, SocketType  # UPDATED import
 from nodes.qdopnode import QD_OpNode
@@ -15,17 +15,16 @@ __all__ = ["HasItem"]
 
 class HasItem(QD_OpNode):
     def __init__(self, title: str = "物品", parent=None):
-        # Initialize base with explicit empty socket lists so we can construct manually
+        # Initialize with explicit empty socket lists; only OUT socket will be created
         super().__init__(title=title, parent=parent, in_sockets=[], out_sockets=[])
-        # One input (flow / numeric chain) and one output (boolean condition)
-        self._in_sockets = [QD_NodeSocket(SocketDirection.IN, parent=self, sock_type=SocketType.DECIMAL)]
+        # Single BOOL output socket
         self._out_sockets = [QD_NodeSocket(SocketDirection.OUT, parent=self, sock_type=SocketType.BOOL)]
         # Build embedded UI phrase: 拥有 <relation> <count> 个 <item>
         self._init_embedded_ui()
-        # Layout sockets after potential resize
+        # Layout socket after potential resize
         self._layout_sockets()
 
-    def _init_embedded_ui(self):  # noqa: D401 NEW
+    def _init_embedded_ui(self):  # noqa: D401
         container = QWidget()
         layout = QHBoxLayout(container)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -63,18 +62,16 @@ class HasItem(QD_OpNode):
 
         self.setEmbeddedWidget(container, auto_resize=True)
 
-    def relation(self) -> str:  # noqa: D401 NEW helper
+    def relation(self) -> str:  # noqa: D401
         return self._combo_relation.currentText()
 
-    def item_name(self) -> str:  # noqa: D401 NEW helper
+    def item_name(self) -> str:  # noqa: D401
         return self._combo_item.currentText()
 
-    def count(self) -> int:  # noqa: D401 NEW helper
+    def count(self) -> int:  # noqa: D401
         return self._spin_count.value()
 
     def _layout_sockets(self):  # noqa: D401
         w, h = self.size()
-        if self._in_sockets:
-            self._in_sockets[0].setPos(0, h / 2)
         if self._out_sockets:
-            self._out_sockets[0].setPos(w, h / 2)
+            self._out_sockets[0].setPos(w + 1, h / 2)

@@ -22,7 +22,7 @@ from enum import Enum, auto
 from typing import Optional, List, TYPE_CHECKING
 from PySide6.QtWidgets import QGraphicsObject, QGraphicsItem
 from PySide6.QtGui import QPainter, QPen, QBrush, QColor, QPolygonF, QPainterPath  # UPDATED imports
-from PySide6.QtCore import QRectF, QPointF  # UPDATED import with QPointF
+from PySide6.QtCore import Qt, QRectF, QPointF  # UPDATED import with QPointF
 
 if TYPE_CHECKING:  # avoid runtime import cycle
     from qdedge import QD_Edge
@@ -61,7 +61,14 @@ _SOCKET_TYPE_COLOR = {
 
 class QD_NodeSocket(QGraphicsObject):
     RADIUS = 6.0
-    _TRIANGLE_SCALE = 1.4  # enlargement factor for DECIMAL sockets (triangles)
+    _TRIANGLE_SCALE = 1.4  # retained (unused now) for potential future scaling
+
+    TYPE_LABELS = {
+        SocketType.INTEGER: "I",
+        SocketType.STRING: "S",
+        SocketType.BOOL: "B",
+        SocketType.DECIMAL: "D",
+    }
 
     def __init__(self, direction: SocketDirection, parent: Optional[QGraphicsObject], sock_type: SocketType = SocketType.DECIMAL):
         if parent is None:
@@ -109,24 +116,15 @@ class QD_NodeSocket(QGraphicsObject):
     # --- QGraphicsItem overrides -----------------------------------------
     def boundingRect(self) -> QRectF:  # noqa: D401
         r = self.RADIUS
-        # Expand bounding rect for enlarged triangle sockets
-        if self._type == SocketType.DECIMAL:
-            scale = self._TRIANGLE_SCALE
-            if self._direction == SocketDirection.IN:
-                left = -r * scale
-                right = r  # keep right side at original center-to-right extent
-            else:  # OUT
-                left = -r
-                right = r * scale
-            return QRectF(left, -r, right - left, 2 * r)
+        # Unified square bounding box
         return QRectF(-r, -r, 2 * r, 2 * r)
 
     def paint(self, painter: QPainter, option, widget=None):  # noqa: D401
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
 
-        # Base fill determined by socket data type now (instead of direction)
+        # Base color by data type
         fill = _SOCKET_TYPE_COLOR.get(self._type, QColor("#666666"))
-        # Subtle direction cue: darken inputs a bit, lighten outputs a bit
+        # Direction cue (optional): darken IN, lighten OUT
         if self._direction == SocketDirection.IN:
             fill = fill.darker(110)
         else:
@@ -147,73 +145,26 @@ class QD_NodeSocket(QGraphicsObject):
         painter.setBrush(QBrush(fill))
 
         rect = self.boundingRect()
-        r = self.RADIUS
-        # BOOL sockets: draw half-square instead of half-circle
-        if self._type == SocketType.BOOL:
-            if self._direction == SocketDirection.IN:
-                half_rect = QRectF(-r, -r, r, 2 * r)  # left half
-            else:
-                half_rect = QRectF(0, -r, r, 2 * r)   # right half
-            painter.drawRect(half_rect)
-            return
-        # DECIMAL sockets: enlarged directional triangle
-        if self._type == SocketType.DECIMAL:
-            scale = self._TRIANGLE_SCALE
-            if self._direction == SocketDirection.IN:
-                points = [QPointF(0, -r), QPointF(-r * scale, 0), QPointF(0, r)]
-            else:
-                points = [QPointF(0, -r), QPointF(r * scale, 0), QPointF(0, r)]
-            poly = QPolygonF(points)
-            painter.drawPolygon(poly)
-            return
+        painter.drawRect(rect)
 
-        # Other types (INTEGER, STRING): draw half-circle (existing behavior)
-        if self._direction == SocketDirection.IN:
-            # Left half: from 90° to 270° (span 180°)
-            start = 90 * 16
-            span = 180 * 16
-        else:  # OUT
-            # Right half: from 270° to 90° (span 180°)
-            start = 270 * 16
-            span = 180 * 16
-        painter.drawPie(rect, start, span)
+        # Draw type label centered
+        label = self.TYPE_LABELS.get(self._type, "?")
+        # Choose contrasting text color
+        # Simple luminance check
+        lum = 0.2126 * fill.redF() + 0.7152 * fill.greenF() + 0.0722 * fill.blueF()
+        text_color = QColor("#000000") if lum > 0.6 else QColor("#ffffff")
+        painter.setPen(text_color)
+        font = painter.font()
+        font.setBold(True)
+        # Scale font to fit nicely inside square
+        font.setPointSizeF(max(6.0, self.RADIUS * 1.6))
+        painter.setFont(font)
+        painter.drawText(rect, int(Qt.AlignmentFlag.AlignCenter), label)
 
     def shape(self):  # noqa: D401
+        # Square shape for hit detection
         path = QPainterPath()
-        rect = self.boundingRect()
-        r = self.RADIUS
-        if self._type == SocketType.BOOL:
-            if self._direction == SocketDirection.IN:
-                path.addRect(QRectF(-r, -r, r, 2 * r))
-            else:
-                path.addRect(QRectF(0, -r, r, 2 * r))
-            return path
-        if self._type == SocketType.DECIMAL:
-            scale = self._TRIANGLE_SCALE
-            if self._direction == SocketDirection.IN:
-                path.moveTo(0, -r)
-                path.lineTo(-r * scale, 0)
-                path.lineTo(0, r)
-            else:
-                path.moveTo(0, -r)
-                path.lineTo(r * scale, 0)
-                path.lineTo(0, r)
-            path.closeSubpath()
-            return path
-        if self._direction == SocketDirection.IN:
-            # Left half-circle
-            start = 90 * 16
-            span = 180 * 16
-        else:
-            # Right half-circle
-            start = 270 * 16
-            span = 180 * 16
-        start_deg = start / 16.0
-        span_deg = span / 16.0
-        path.moveTo(0, 0)
-        path.arcMoveTo(rect, start_deg)
-        path.arcTo(rect, start_deg, span_deg)
-        path.closeSubpath()
+        path.addRect(self.boundingRect())
         return path
 
     # --- Hover events -----------------------------------------------------
