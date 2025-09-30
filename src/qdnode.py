@@ -163,14 +163,14 @@ class QD_Node(QGraphicsObject):
         self._proxy.setWidget(widget)
         y0 = _TITLE_BAR_HEIGHT
         widget.resize(widget.sizeHint())
-        widget_size = widget.size()
+        wsize = widget.size()
         if auto_resize:
-            needed_width = widget_size.width() + padding * 2
-            needed_height = y0 + wdget_size.height() + padding
-            if needed_width > self._w:
-                self._w = needed_width
-            if needed_height > self._h:
-                self._h = needed_height
+            needed_w = wsize.width() + padding * 2
+            needed_h = y0 + wsize.height() + padding
+            if needed_w > self._w:
+                self._w = needed_w
+            if needed_h > self._h:
+                self._h = needed_h
         # Use new centering helper (exclude title bar vertically)
         self._center_embedded_widget_in_body(padding)
         self.prepareGeometryChange()
