@@ -29,7 +29,7 @@ __all__ = ["Selector"]
 
 
 class Selector(QD_OpNode):
-    def __init__(self, title: str = "Selector", parent: Optional[object] = None):
+    def __init__(self, title: str = "分支", parent: Optional[object] = None):
         # Initialize base with explicit empty socket arrays so we manually create sockets
         super().__init__(title=title, parent=parent, in_sockets=[], out_sockets=[])
         # Inputs: BOOL (condition), PROCESS (incoming flow)

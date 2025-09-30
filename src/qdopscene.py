@@ -28,7 +28,7 @@ class QD_OpScene(QD_GfxScene):
             QColor(0x33, 0x3f, 0x4c),  # minor grid
             QColor(0x44, 0x55, 0x66),  # major grid
         )
-        # Install op node factory set (Calc, Level, HasItem, Logic, Compare, Function, Selector)
+        # Install op node factory set (Calc, Level, HasItem, Logic, Compare, Function, Selector, Wait)
         self._install_default_node_factories()
 
     def _install_default_node_factories(self):  # noqa: D401
@@ -39,7 +39,9 @@ class QD_OpScene(QD_GfxScene):
         self.register_node_type("关系运算", self._factory_compare)
         self.register_node_type("逻辑运算", self._factory_logic)
         self.register_node_type("函数", self._factory_function)
-        self.register_node_type("选择", self._factory_selector)  # NEW Selector node
+        self.register_node_type("分支", self._factory_selector)  # NEW Selector node
+        self.register_node_type("等待", self._factory_wait)  # NEW Wait node
+        self.register_node_type("入口", self._factory_enter)  # NEW Enter node
 
     @staticmethod
     def _factory_calc():  # noqa: D401
@@ -75,6 +77,16 @@ class QD_OpScene(QD_GfxScene):
     def _factory_selector():  # noqa: D401 NEW factory
         from nodes.op.selector import Selector
         return Selector()
+
+    @staticmethod
+    def _factory_wait():  # noqa: D401 NEW factory
+        from nodes.op.wait import Wait  # updated path
+        return Wait()
+
+    @staticmethod
+    def _factory_enter():  # noqa: D401 NEW factory
+        from nodes.op.enter import Enter
+        return Enter()
 
     # Example future hook
     def analyze(self):  # noqa: D401
