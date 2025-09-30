@@ -28,7 +28,7 @@ from PySide6.QtCore import Qt, QRectF
 if TYPE_CHECKING:  # avoid runtime import cycle
     from qdedge import QD_Edge
 
-__all__ = ["QD_NodeSocket", "SocketDirection", "SocketType"]
+__all__ = ["QD_NodeSocket", "SocketDirection", "SocketType", "socket_data_type_match"]
 
 
 class SocketDirection(Enum):
@@ -41,6 +41,34 @@ class SocketType(Enum):  # Data type classification for sockets
     INTEGER = auto()
     STRING = auto()
     BOOL = auto()
+
+
+# --- Data type compatibility policy ---------------------------------------
+# Rules (OUT -> IN):
+# - STRING  -> STRING only
+# - BOOL    -> BOOL only
+# - INTEGER -> INTEGER or DECIMAL (widen)
+# - DECIMAL -> DECIMAL only (no implicit narrowing to INTEGER)
+# (Can be extended later with coercion / user-defined casts.)
+
+def socket_data_type_match(out_socket: "QD_NodeSocket", in_socket: "QD_NodeSocket") -> bool:
+    """Return True if data types are compatible for a connection OUT -> IN.
+
+    Caller must ensure direction ordering (out_socket is OUT, in_socket is IN).
+    This function enforces strict (or widening) compatibility without implicit
+    narrowing conversions.
+    """
+    t_out = out_socket.socket_type()
+    t_in = in_socket.socket_type()
+    if t_out == SocketType.STRING:
+        return t_in == SocketType.STRING
+    if t_out == SocketType.BOOL:
+        return t_in == SocketType.BOOL
+    if t_out == SocketType.INTEGER:
+        return t_in in (SocketType.INTEGER, SocketType.DECIMAL)
+    if t_out == SocketType.DECIMAL:
+        return t_in == SocketType.DECIMAL
+    return False
 
 
 # Palette

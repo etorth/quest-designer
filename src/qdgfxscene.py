@@ -10,12 +10,12 @@ from PySide6.QtWidgets import QGraphicsScene
 from PySide6.QtGui import QPainter, QPen, QColor, QTransform
 from PySide6.QtCore import QRectF, QPointF, Qt
 
-from qdnodesocket import QD_NodeSocket, SocketType
+from qdnodesocket import QD_NodeSocket, socket_data_type_match, SocketDirection
 from qdedge import QD_Edge  # type: ignore
 from qdnode import QD_Node
 
 if TYPE_CHECKING:
-    from qdnode import QD_Node as _QD_Node_Type
+    pass  # placeholder for future type-only imports
 
 
 class QD_GfxScene(QGraphicsScene):
@@ -113,16 +113,20 @@ class QD_GfxScene(QGraphicsScene):
         self._hover_target_socket = None
 
     @staticmethod
-    def _sockets_compatible(a: QD_NodeSocket, b: QD_NodeSocket) -> bool:
+    def _sockets_compatible(a: QD_NodeSocket, b: QD_NodeSocket) -> bool:  # staticmethod removed for ordering logic
+        # Must be distinct
         if a is b:
             return False
+        # Must be opposite directions
         if a.direction() == b.direction():
             return False
-        t1 = a.socket_type()
-        t2 = b.socket_type()
-        if ({t1, t2} == {SocketType.INTEGER, SocketType.STRING}):
-            return False
-        return True
+        # Determine OUT/IN ordering
+        if a.direction() == SocketDirection.OUT and b.direction() == SocketDirection.IN:
+            out_sock, in_sock = a, b
+        else:
+            out_sock, in_sock = b, a
+        # Data type match according to centralized policy
+        return socket_data_type_match(out_sock, in_sock)
 
     def mousePressEvent(self, event):  # Qt override
         if event.button() == Qt.MouseButton.RightButton:

@@ -161,23 +161,45 @@ class QD_Node(QGraphicsObject):
         self._embedded_widget = widget
         self._proxy = QGraphicsProxyWidget(self)
         self._proxy.setWidget(widget)
-        # Determine placement rectangle
         y0 = _TITLE_BAR_HEIGHT
         widget.resize(widget.sizeHint())
         wsize = widget.size()
         if auto_resize:
-            # Expand node size if widget larger than current interior
             needed_w = wsize.width() + padding * 2
             needed_h = y0 + wsize.height() + padding
             if needed_w > self._w:
                 self._w = needed_w
             if needed_h > self._h:
                 self._h = needed_h
-        x = padding + max(0.0, (self._w - padding * 2 - wsize.width()) / 2.0)
-        self._proxy.setPos(x, y0 + padding)
+        # Use new centering helper (exclude title bar vertically)
+        self._center_embedded_widget_in_body(padding)
         self.prepareGeometryChange()
         self.update()
         return widget
+
+    def _center_embedded_widget_in_body(self, padding: int = _CONTENT_PADDING):
+        """Center the embedded widget in the content region (excluding title bar).
+
+        Horizontal: centered within width minus padding.
+        Vertical: centered within area below title bar. If the widget is taller
+        than the content region, clamp to top (just below title bar) with padding.
+        """
+        if self._proxy is None:
+            return
+        widget = self._proxy.widget()
+        if widget is None:
+            return
+        w = widget.width() or widget.sizeHint().width()
+        h = widget.height() or widget.sizeHint().height()
+        content_height = max(0.0, self._h - _TITLE_BAR_HEIGHT - padding)
+        # Horizontal center inside padded area
+        x = padding + max(0.0, (self._w - 2 * padding - w) / 2.0)
+        # Vertical center inside content body (exclude title bar)
+        if h >= content_height:
+            y = _TITLE_BAR_HEIGHT + padding
+        else:
+            y = _TITLE_BAR_HEIGHT + (content_height - h) / 2.0
+        self._proxy.setPos(x, y)
 
     def embedded_widget(self) -> QWidget | None:  # noqa: D401
         return self._embedded_widget
