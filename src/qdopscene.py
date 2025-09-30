@@ -28,20 +28,22 @@ class QD_OpScene(QD_GfxScene):
             QColor(0x33, 0x3f, 0x4c),  # minor grid
             QColor(0x44, 0x55, 0x66),  # major grid
         )
-        # Install op node factory set (Calc, Level, HasItem, Logic, Compare, Function, Selector, Wait)
+        # Install op node factory set (Calc, Level, CheckItem, Logic, Compare, Function, Selector, Wait)
         self._install_default_node_factories()
 
     def _install_default_node_factories(self):  # noqa: D401
         """Register default operational primitives."""
-        self.register_node_type("检查等级", self._factory_level)
-        self.register_node_type("拥有物品", self._factory_hasitem)
+        self.register_node_type("等级", self._factory_level)
+        self.register_node_type("等级值", self._factory_getlevel)
+        self.register_node_type("物品", self._factory_checkitem)
+        self.register_node_type("物品数量", self._factory_getitem)  # NEW GetItem
         self.register_node_type("四则运算", self._factory_calc)
         self.register_node_type("关系运算", self._factory_compare)
         self.register_node_type("逻辑运算", self._factory_logic)
         self.register_node_type("函数", self._factory_function)
-        self.register_node_type("分支", self._factory_selector)  # NEW Selector node
-        self.register_node_type("等待", self._factory_wait)  # NEW Wait node
-        self.register_node_type("入口", self._factory_enter)  # NEW Enter node
+        self.register_node_type("分支", self._factory_selector)
+        self.register_node_type("等待", self._factory_wait)
+        self.register_node_type("入口", self._factory_enter)
 
     @staticmethod
     def _factory_calc():  # noqa: D401
@@ -54,9 +56,14 @@ class QD_OpScene(QD_GfxScene):
         return CheckLeve()
 
     @staticmethod
-    def _factory_hasitem():  # noqa: D401
-        from nodes.op.game import HasItem
-        return HasItem()
+    def _factory_getlevel():  # noqa: D401 NEW factory
+        from nodes.op.game import GetLevel
+        return GetLevel()
+
+    @staticmethod
+    def _factory_checkitem():  # noqa: D401 (renamed from _factory_hasitem)
+        from nodes.op.game import CheckItem
+        return CheckItem()
 
     @staticmethod
     def _factory_logic():  # noqa: D401
@@ -87,6 +94,11 @@ class QD_OpScene(QD_GfxScene):
     def _factory_enter():  # noqa: D401 NEW factory
         from nodes.op.enter import Enter
         return Enter()
+
+    @staticmethod
+    def _factory_getitem():  # noqa: D401 NEW factory
+        from nodes.op.game import GetItem
+        return GetItem()
 
     # Example future hook
     def analyze(self):  # noqa: D401

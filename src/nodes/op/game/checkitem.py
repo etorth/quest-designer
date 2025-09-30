@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-"""HasItem operation node.
+"""CheckItem operation node.
 
-Represents a condition check that yields a boolean (does the player have a
-specific quantity of an item under a relation). This node now has:
+Represents an item possession condition that yields a boolean (does the player
+have a specific quantity of an item under a relation). This node has:
 - No input sockets (acts as a source / query node)
 - Exactly one OUT socket of BOOL type
 """
@@ -16,18 +16,14 @@ SocketType = _qdns.SocketType
 _qdop = import_module('nodes.qdopnode')
 QD_OpNode = _qdop.QD_OpNode
 
-__all__ = ["HasItem"]
+__all__ = ["CheckItem"]
 
 
-class HasItem(QD_OpNode):
+class CheckItem(QD_OpNode):
     def __init__(self, title: str = "物品", parent=None):
-        # Initialize with explicit empty socket lists; only OUT socket will be created
         super().__init__(title=title, parent=parent, in_sockets=[], out_sockets=[])
-        # Single BOOL output socket
         self._out_sockets = [QD_NodeSocket(SocketDirection.OUT, parent=self, sock_type=SocketType.BOOL)]
-        # Build embedded UI phrase: 拥有 <relation> <count> 个 <item>
         self._init_embedded_ui()
-        # Layout socket after potential resize
         self._layout_sockets()
 
     def _init_embedded_ui(self):  # noqa: D401
@@ -37,7 +33,6 @@ class HasItem(QD_OpNode):
         layout.setSpacing(4)
 
         self._label_have = QLabel("拥有", container)
-
         self._combo_relation = QComboBox(container)
         self._relations = ["多于", "少于", "等于", "不多于", "不少于", "不等于"]
         self._combo_relation.addItems(self._relations)
@@ -49,12 +44,10 @@ class HasItem(QD_OpNode):
         self._spin_count.setFixedWidth(70)
 
         self._label_ge = QLabel("个", container)
-
         self._combo_item = QComboBox(container)
         self._items = ["太阳水", "木剑", "苹果"]
         self._combo_item.addItems(self._items)
 
-        # Adjust widths to keep phrase compact while readable
         self._combo_relation.setMinimumContentsLength(3)
         self._combo_item.setMinimumContentsLength(2)
         self._combo_relation.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
@@ -65,7 +58,6 @@ class HasItem(QD_OpNode):
         layout.addWidget(self._spin_count)
         layout.addWidget(self._label_ge)
         layout.addWidget(self._combo_item)
-
         self.set_embedded_widget(container, auto_resize=True)
 
     def relation(self) -> str:  # noqa: D401
