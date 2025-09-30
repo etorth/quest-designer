@@ -172,6 +172,23 @@ class QD_NodeSocket(QGraphicsObject):
             fill = fill.lighter(125)
         if self.isSelected():
             fill = fill.lighter(140)
+        # Glow (option B): show on any hover; amplified when highlighted
+        if self._hover or self._highlight:
+            glow_color = QColor(fill)
+            # Base alpha
+            base_alpha = 70
+            if self._highlight:
+                base_alpha = 130
+            if self.isSelected():
+                base_alpha = min(200, base_alpha + 40)
+            glow_color.setAlpha(base_alpha)
+            painter.save()
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(glow_color)
+            # Slightly larger rect for glow halo
+            r = self.RADIUS + 3
+            painter.drawRoundedRect(QRectF(-r, -r, 2 * r, 2 * r), 3, 3)
+            painter.restore()
         pen_color = _SOCKET_BORDER_HIGHLIGHT if self._highlight else (_SOCKET_BORDER_HOVER if (self._hover or self.isSelected()) else _SOCKET_BORDER)
         painter.setPen(QPen(pen_color, 1))
         painter.setBrush(QBrush(fill))

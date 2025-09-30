@@ -18,7 +18,7 @@ from PySide6.QtWidgets import QGraphicsPathItem, QGraphicsItem
 from PySide6.QtGui import QPainterPath, QPen, QColor
 from PySide6.QtCore import QPointF, Qt
 
-from qdnodesocket import QD_NodeSocket, SocketDirection
+from qdnodesocket import QD_NodeSocket, SocketDirection, SocketType
 
 __all__ = ["QD_Edge", "EdgeStatus"]
 
@@ -33,6 +33,10 @@ _EDGE_COLOR_NORMAL = QColor("#b8b8b8")
 _EDGE_COLOR_CONNECTING = QColor("#9aa0a6")
 _EDGE_COLOR_DELETING = QColor("#ff4d4d")
 _EDGE_COLOR_SELECTED = QColor("#4da3ff")
+_EDGE_COLOR_PROCESS = QColor("#d4af37")
+_EDGE_COLOR_PROCESS_CONNECTING = QColor("#c39b2c")
+_EDGE_COLOR_PROCESS_SELECTED = QColor("#ffdb5e")
+_EDGE_COLOR_PROCESS_DELETING = QColor("#ff9f3d")
 
 
 class QD_Edge(QGraphicsPathItem):
@@ -137,6 +141,22 @@ class QD_Edge(QGraphicsPathItem):
         else:
             self._status = EdgeStatus.CONNECTING
 
+    def _is_process_edge(self) -> bool:
+        """Return True if any connected socket is of PROCESS type.
+
+        Safe against partially connected (CONNECTING) edges.
+        """
+        try:
+            ins = self._in_socket()
+            if ins and ins.socket_type() == SocketType.PROCESS:
+                return True
+            outs = self._out_socket()
+            if outs and outs.socket_type() == SocketType.PROCESS:
+                return True
+        except Exception:
+            pass
+        return False
+
     # --- Dynamic connecting -----------------------------------------------
     def update_dynamic_end(self, scene_pos: QPointF):
         if self._status != EdgeStatus.CONNECTING:
@@ -205,19 +225,21 @@ class QD_Edge(QGraphicsPathItem):
 
     # --- Painting ---------------------------------------------------------
     def paint(self, painter, option, widget=None):  # Qt override
+        is_process_edge = self._is_process_edge()
         if self._status == EdgeStatus.DELETING:
-            color = _EDGE_COLOR_DELETING
+            color = _EDGE_COLOR_PROCESS_DELETING if is_process_edge else _EDGE_COLOR_DELETING
         elif self._status == EdgeStatus.CONNECTING:
-            color = _EDGE_COLOR_CONNECTING
+            color = _EDGE_COLOR_PROCESS_CONNECTING if is_process_edge else _EDGE_COLOR_CONNECTING
         else:
-            color = _EDGE_COLOR_NORMAL
+            color = _EDGE_COLOR_PROCESS if is_process_edge else _EDGE_COLOR_NORMAL
         if self.isSelected() and self._status != EdgeStatus.DELETING:
-            color = _EDGE_COLOR_SELECTED
-        pen = QPen(color, 2)
+            color = _EDGE_COLOR_PROCESS_SELECTED if is_process_edge else _EDGE_COLOR_SELECTED
+        base_width = 3 if is_process_edge else 2
+        pen = QPen(color, base_width)
         if self._status == EdgeStatus.CONNECTING:
             pen.setStyle(Qt.PenStyle.DashLine)
         if self._status == EdgeStatus.DELETING:
-            pen.setWidth(2)
+            pen.setWidth(base_width + 0)
             pen.setStyle(Qt.PenStyle.DashDotLine)
         if self.isSelected():
             pen.setWidth(pen.width() + 1)
