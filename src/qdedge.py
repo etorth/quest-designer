@@ -1,7 +1,14 @@
 # -*- coding: utf-8 -*-
 """Edge graphics item for QuestDesigner.
 
-Refactored: project-local APIs now snake_case (Qt event names preserved).
+Semantics (UPDATED):
+- An edge may have 1 or 2 sockets connected.
+- If two sockets are connected they must have opposite directions (IN vs OUT).
+- The "beginning point" of the drawn curve is the IN socket (if present).
+- The "ending point" of the drawn curve is the OUT socket (if present).
+- For a half (CONNECTING) edge:
+    * If only an IN socket is attached: curve starts at that IN socket and ends at the mouse (temp) position.
+    * If only an OUT socket is attached: curve ends at that OUT socket and begins at the mouse (temp) position.
 """
 from enum import Enum, auto
 from typing import Optional, Tuple
@@ -34,10 +41,8 @@ class QD_Edge(QGraphicsPathItem):
         self._end: Optional[QD_NodeSocket] = None
         self._status: EdgeStatus = EdgeStatus.CONNECTING
         self._temp_pos: Optional[QPointF] = None
-
         self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, True)
         self.setZValue(-1)
-
         if begin:
             self.set_begin_socket(begin)
         if end:
@@ -52,7 +57,7 @@ class QD_Edge(QGraphicsPathItem):
             self._begin.remove_edge(self)
         self._begin = socket
         socket.add_edge(self)
-        self._auto_orient()
+        # _auto_orient removed (orientation handled logically elsewhere)
         self._update_status_after_socket_change()
         self.update_path()
 
@@ -63,7 +68,6 @@ class QD_Edge(QGraphicsPathItem):
             self._end.remove_edge(self)
         self._end = socket
         socket.add_edge(self)
-        self._auto_orient()
         self._update_status_after_socket_change()
         self.update_path()
 
@@ -93,20 +97,45 @@ class QD_Edge(QGraphicsPathItem):
     def status(self) -> EdgeStatus:
         return self._status
 
-    def _update_status_after_socket_change(self):
+    def _in_socket(self) -> Optional[QD_NodeSocket]:
+        if self._begin and self._begin.direction() == SocketDirection.IN:
+            return self._begin
+        if self._end and self._end.direction() == SocketDirection.IN:
+            return self._end
+        return None
+
+    def _out_socket(self) -> Optional[QD_NodeSocket]:
+        if self._begin and self._begin.direction() == SocketDirection.OUT:
+            return self._begin
+        if self._end and self._end.direction() == SocketDirection.OUT:
+            return self._end
+        return None
+
+    def _validate_direction_pair(self):
+        """Ensure if two sockets are present they have opposite directions.
+        If they don't, drop the later-attached (stored in _end) to preserve edge validity.
+        """
+        if self._begin and self._end:
+            if self._begin.direction() == self._end.direction():
+                # Remove the second one silently (could alternatively mark DELETING)
+                try:
+                    self._end.remove_edge(self)
+                except Exception:
+                    pass
+                self._end = None
+                self._status = EdgeStatus.CONNECTING
+
+    def _update_status_after_socket_change(self):  # override with validation
+        self._validate_direction_pair()
         if self._status == EdgeStatus.DELETING:
             return
-        if self._begin and self._end:
+        in_sock = self._in_socket()
+        out_sock = self._out_socket()
+        if in_sock and out_sock:
             self._status = EdgeStatus.DONE
             self._temp_pos = None
         else:
             self._status = EdgeStatus.CONNECTING
-
-    def _auto_orient(self):
-        if self._begin and self._end:
-            if (self._begin.direction() == SocketDirection.IN and
-                    self._end.direction() == SocketDirection.OUT):
-                self._begin, self._end = self._end, self._begin
 
     # --- Dynamic connecting -----------------------------------------------
     def update_dynamic_end(self, scene_pos: QPointF):
@@ -119,13 +148,20 @@ class QD_Edge(QGraphicsPathItem):
 
     # --- Geometry/path ----------------------------------------------------
     def _endpoint_positions(self) -> Optional[Tuple[QPointF, QPointF]]:
-        if self._begin and self._end:
-            return self._begin.connection_point(), self._end.connection_point()
+        in_sock = self._in_socket()
+        out_sock = self._out_socket()
+        # Both sockets present: p1 is IN, p2 is OUT
+        if in_sock and out_sock:
+            return in_sock.connection_point(), out_sock.connection_point()
+        # Half edge logic
         if self._status == EdgeStatus.CONNECTING and self._temp_pos is not None:
-            if self._begin and not self._end:
-                return self._begin.connection_point(), self._temp_pos
-            if self._end and not self._begin:
-                return self._temp_pos, self._end.connection_point()
+            if in_sock and not out_sock:
+                # start at IN, end at temp
+                return in_sock.connection_point(), self._temp_pos
+            if out_sock and not in_sock:
+                # start at temp, end at OUT
+                return self._temp_pos, out_sock.connection_point()
+        # No endpoints or insufficient info
         return None
 
     def update_path(self):
@@ -140,16 +176,15 @@ class QD_Edge(QGraphicsPathItem):
         if p1 == p2:
             path.addEllipse(p1, 1.5, 1.5)
         else:
-            # Horizontal offset ensures first control point is to the RIGHT of start
             raw_dx = p2.x() - p1.x()
-            # Base magnitude: half of horizontal distance or a minimum value
-            base_mag = max(40.0, abs(raw_dx) * 0.5)
-            # First control point: always to the right of p1 (even if edge goes left)
+            # Adaptive curvature: different clamp when edge flows leftwards
+            if raw_dx >= 0:
+                base_mag = max(40.0, min(abs(raw_dx) * 0.5, 200.0))
+            else:
+                base_mag = max(40.0, min(abs(raw_dx) * 0.35, 120.0))
             ctrl1 = QPointF(p1.x() + base_mag, p1.y())
-            # Second control point: mirror-style toward p2 (keeps curve smooth)
             ctrl2 = QPointF(p2.x() - base_mag, p2.y())
-            # If p2.x() is very close to p1.x(), ctrl2 might cross p1; clamp to midpoint to avoid extreme fold
-            if (p2.x() - ctrl2.x()) < 10:  # too tight, relax
+            if (p2.x() - ctrl2.x()) < 10:  # tighten second control
                 mid_x = (p1.x() + p2.x()) / 2.0
                 ctrl2 = QPointF(mid_x, p2.y())
             path.cubicTo(ctrl1, ctrl2, p2)
@@ -178,6 +213,34 @@ class QD_Edge(QGraphicsPathItem):
         painter.setPen(pen)
         painter.setBrush(Qt.BrushStyle.NoBrush)
         painter.drawPath(self.path())
+        # Arrowhead at ending point (OUT socket end) if complete
+        try:
+            in_sock = self._in_socket()
+            out_sock = self._out_socket()
+            if out_sock and (in_sock or self._status == EdgeStatus.CONNECTING):
+                # Determine end point and tangent
+                p_end = out_sock.connection_point() if in_sock and out_sock else None
+                if p_end is None and self._status == EdgeStatus.CONNECTING and out_sock:
+                    p_end = out_sock.connection_point()
+                if p_end is not None:
+                    # Approximate tangent using last segment
+                    length_approx_p = self.path().pointAtPercent(1.0)
+                    back_approx = self.path().pointAtPercent(0.985)
+                    vx = length_approx_p.x() - back_approx.x()
+                    vy = length_approx_p.y() - back_approx.y()
+                    mag = (vx * vx + vy * vy) ** 0.5 or 1.0
+                    ux, uy = vx / mag, vy / mag
+                    arrow_len = 10.0
+                    wing = 5.0
+                    tip = length_approx_p
+                    left = QPointF(tip.x() - ux * arrow_len + (-uy) * wing,
+                                   tip.y() - uy * arrow_len + ux * wing)
+                    right = QPointF(tip.x() - ux * arrow_len + uy * wing,
+                                    tip.y() - uy * arrow_len - ux * wing)
+                    painter.setBrush(color)
+                    painter.drawPolygon(tip, left, right)
+        except Exception:
+            pass
 
     # --- Utilities --------------------------------------------------------
     def begin_socket(self) -> Optional[QD_NodeSocket]:
@@ -194,3 +257,4 @@ class QD_Edge(QGraphicsPathItem):
 
     def is_deleting(self) -> bool:
         return self._status == EdgeStatus.DELETING
+
