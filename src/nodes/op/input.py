@@ -144,8 +144,8 @@ class Input(QD_OpNode):
                 pass
             if prev_value is not None:
                 te.setPlainText(str(prev_value))
-            # Keep QTextEdit compact in height
             te.setFixedHeight(60)
+            te.textChanged.connect(self._on_string_text_changed)  # NEW dynamic resize hook
             self._value_widget = te
         # Add new widget to layout
         if self._value_layout is not None and self._value_widget is not None:
@@ -154,6 +154,32 @@ class Input(QD_OpNode):
         self._autosize_value_widget()
         self._auto_resize_after_value_change()
         self.update()
+
+    def _on_string_text_changed(self):  # NEW
+        if not isinstance(self._value_widget, QTextEdit):
+            return
+        te: QTextEdit = self._value_widget
+        text = te.toPlainText()
+        fm = QFontMetrics(te.font())
+        # Width based on longest line (cap length for perf)
+        lines = text.splitlines() or [""]
+        longest = max((fm.horizontalAdvance(l[:120]) for l in lines), default=0)
+        target_w = min(360, max(140, longest + 24))
+        # Height based on number of lines (limit growth)
+        line_h = fm.height()
+        line_count = max(1, len(lines))
+        target_h = min(240, max(60, line_count * line_h + 16))
+        changed = False
+        if abs(te.width() - target_w) > 6:
+            te.setFixedWidth(target_w)
+            changed = True
+        if abs(te.height() - target_h) > 6:
+            te.setFixedHeight(target_h)
+            changed = True
+        if changed:
+            # Re-run container and node sizing
+            self._auto_resize_after_value_change()
+            self.update()
 
     def _autosize_value_widget(self):  # NEW helper
         """Auto shrink/expand the second widget based on current type.
@@ -244,8 +270,8 @@ class Input(QD_OpNode):
 
     # --- Type / socket logic --------------------------------------------
     def _on_type_changed(self, _index: int):  # noqa: D401
-        # First rebuild value widget for new type (handles UI + resize)
         self._rebuild_value_widget()
+        # Clear previous dynamic string callback scenario handled in rebuild
         # Then update socket type
         if not self._out_sockets:
             return
