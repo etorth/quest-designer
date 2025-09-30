@@ -23,7 +23,7 @@ from enum import Enum, auto
 from typing import Optional, List, TYPE_CHECKING
 from PySide6.QtWidgets import QGraphicsObject, QGraphicsItem
 from PySide6.QtGui import QPainter, QPen, QBrush, QColor, QPainterPath
-from PySide6.QtCore import Qt, QRectF
+from PySide6.QtCore import Qt, QRectF, QPointF
 
 if TYPE_CHECKING:  # avoid runtime import cycle
     from qdedge import QD_Edge
@@ -139,6 +139,20 @@ class QD_NodeSocket(QGraphicsObject):
         if self._highlight != flag:
             self._highlight = flag
             self.update()
+
+    def connection_point(self) -> QPointF:
+        """Return the scene position where an edge should attach.
+
+        OUT socket: midpoint of right edge of the square
+        IN socket:  midpoint of left  edge of the square
+        (Fallback: center)
+        """
+        center = self.scenePos()
+        if self._direction == SocketDirection.OUT:
+            return QPointF(center.x() + self.RADIUS, center.y())
+        if self._direction == SocketDirection.IN:
+            return QPointF(center.x() - self.RADIUS, center.y())
+        return center
 
     # --- QGraphicsItem overrides -----------------------------------------
     def boundingRect(self) -> QRectF:  # Qt override (keep camel)

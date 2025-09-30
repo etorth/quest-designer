@@ -120,12 +120,12 @@ class QD_Edge(QGraphicsPathItem):
     # --- Geometry/path ----------------------------------------------------
     def _endpoint_positions(self) -> Optional[Tuple[QPointF, QPointF]]:
         if self._begin and self._end:
-            return self._begin.scenePos(), self._end.scenePos()
+            return self._begin.connection_point(), self._end.connection_point()
         if self._status == EdgeStatus.CONNECTING and self._temp_pos is not None:
             if self._begin and not self._end:
-                return self._begin.scenePos(), self._temp_pos
+                return self._begin.connection_point(), self._temp_pos
             if self._end and not self._begin:
-                return self._temp_pos, self._end.scenePos()
+                return self._temp_pos, self._end.connection_point()
         return None
 
     def update_path(self):
@@ -140,13 +140,18 @@ class QD_Edge(QGraphicsPathItem):
         if p1 == p2:
             path.addEllipse(p1, 1.5, 1.5)
         else:
-            dx = (p2.x() - p1.x()) * 0.5
-            ctrl1 = QPointF(p1.x() + dx, p1.y())
-            ctrl2 = QPointF(p2.x() - dx, p2.y())
-            if abs(p2.x() - p1.x()) < 10:
-                dy = (p2.y() - p1.y()) * 0.5
-                ctrl1 = QPointF(p1.x(), p1.y() + dy)
-                ctrl2 = QPointF(p2.x(), p2.y() - dy)
+            # Horizontal offset ensures first control point is to the RIGHT of start
+            raw_dx = p2.x() - p1.x()
+            # Base magnitude: half of horizontal distance or a minimum value
+            base_mag = max(40.0, abs(raw_dx) * 0.5)
+            # First control point: always to the right of p1 (even if edge goes left)
+            ctrl1 = QPointF(p1.x() + base_mag, p1.y())
+            # Second control point: mirror-style toward p2 (keeps curve smooth)
+            ctrl2 = QPointF(p2.x() - base_mag, p2.y())
+            # If p2.x() is very close to p1.x(), ctrl2 might cross p1; clamp to midpoint to avoid extreme fold
+            if (p2.x() - ctrl2.x()) < 10:  # too tight, relax
+                mid_x = (p1.x() + p2.x()) / 2.0
+                ctrl2 = QPointF(mid_x, p2.y())
             path.cubicTo(ctrl1, ctrl2, p2)
         self.setPath(path)
         self.update()
