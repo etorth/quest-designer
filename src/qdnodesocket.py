@@ -147,16 +147,11 @@ class QD_NodeSocket(QGraphicsObject):
         rect = self.boundingRect()
         painter.drawRect(rect)
 
-        # Draw type label centered
+        # Draw type label centered (always black font per request)
         label = self.TYPE_LABELS.get(self._type, "?")
-        # Choose contrasting text color
-        # Simple luminance check
-        lum = 0.2126 * fill.redF() + 0.7152 * fill.greenF() + 0.0722 * fill.blueF()
-        text_color = QColor("#000000") if lum > 0.6 else QColor("#ffffff")
-        painter.setPen(text_color)
+        painter.setPen(QColor("#000000"))
         font = painter.font()
-        font.setBold(True)
-        # Scale font to fit nicely inside square
+        font.setBold(False)
         font.setPointSizeF(max(6.0, self.RADIUS * 1.6))
         painter.setFont(font)
         painter.drawText(rect, int(Qt.AlignmentFlag.AlignCenter), label)

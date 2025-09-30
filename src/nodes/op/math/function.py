@@ -52,9 +52,7 @@ class Function(QD_OpNode):
 
     def _layout_sockets(self):  # noqa: D401
         w, h = self.size()
-        # Single input centered vertically on left edge
         if self._in_sockets:
-            self._in_sockets[0].setPos(0, h / 2)
-        # Single output centered vertically on right edge
+            self._in_sockets[0].setPos(-QD_NodeSocket.RADIUS, h / 2)
         if self._out_sockets:
-            self._out_sockets[0].setPos(w, h / 2)
+            self._out_sockets[0].setPos(w + QD_NodeSocket.RADIUS, h / 2)

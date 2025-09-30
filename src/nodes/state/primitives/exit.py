@@ -25,4 +25,4 @@ class Exit(QD_StateNode):  # changed base class
         if self._in_sockets:
             sock = self._in_sockets[0]
             w, h = self.size()
-            sock.setPos(0, h / 2.0)
+            sock.setPos(-QD_NodeSocket.RADIUS, h / 2.0)

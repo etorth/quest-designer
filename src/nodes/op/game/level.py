@@ -49,5 +49,5 @@ class Level(QD_OpNode):
     def _layout_sockets(self):  # noqa: D401
         w, h = self.size()
         if self._out_sockets:
-            # Position OUT socket with +1 px offset to avoid overlap
-            self._out_sockets[0].setPos(w + 1, h / 2)
+            # Position OUT socket center at w + RADIUS to avoid overlap
+            self._out_sockets[0].setPos(w + QD_NodeSocket.RADIUS, h / 2)

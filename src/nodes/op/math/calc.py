@@ -63,12 +63,10 @@ class Calc(QD_OpNode):
         if not self._in_sockets and not self._out_sockets:
             return
         w, h = self.size()
-        # Position input sockets evenly along left edge (center of each half-circle flush)
         if self._in_sockets:
             gap = h / (len(self._in_sockets) + 1)
             for idx, sock in enumerate(self._in_sockets, start=1):
-                sock.setPos(0, gap * idx)
-        # Output socket centered vertically on right edge
+                sock.setPos(-QD_NodeSocket.RADIUS, gap * idx)
         if self._out_sockets:
             out_sock = self._out_sockets[0]
-            out_sock.setPos(w, h / 2)
+            out_sock.setPos(w + QD_NodeSocket.RADIUS, h / 2)

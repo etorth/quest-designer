@@ -56,6 +56,6 @@ class Compare(QD_OpNode):
         if self._in_sockets:
             gap = h / (len(self._in_sockets) + 1)
             for idx, sock in enumerate(self._in_sockets, start=1):
-                sock.setPos(0, gap * idx)
+                sock.setPos(-QD_NodeSocket.RADIUS, gap * idx)
         if self._out_sockets:
-            self._out_sockets[0].setPos(w, h / 2)
+            self._out_sockets[0].setPos(w + QD_NodeSocket.RADIUS, h / 2)

@@ -25,4 +25,4 @@ class Enter(QD_StateNode):  # changed base class
         if self._out_sockets:
             sock = self._out_sockets[0]
             w, h = self.size()
-            sock.setPos(w, h / 2.0)
+            sock.setPos(w + QD_NodeSocket.RADIUS, h / 2.0)

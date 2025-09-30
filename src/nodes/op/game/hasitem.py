@@ -74,4 +74,4 @@ class HasItem(QD_OpNode):
     def _layout_sockets(self):  # noqa: D401
         w, h = self.size()
         if self._out_sockets:
-            self._out_sockets[0].setPos(w + 1, h / 2)
+            self._out_sockets[0].setPos(w + QD_NodeSocket.RADIUS, h / 2)
