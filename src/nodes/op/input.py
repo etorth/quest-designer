@@ -21,7 +21,7 @@ Enhancements implemented:
 from importlib import import_module
 from typing import Optional, Any
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QComboBox, QLineEdit, QSpinBox, QTextEdit  # ADDED QTextEdit
-from PySide6.QtGui import QDoubleValidator
+from PySide6.QtGui import QDoubleValidator, QFontMetrics  # UPDATED imports
 from PySide6.QtGui import QValidator  # NEW import for state comparison
 
 # Import private layout constants for accurate auto-resize (safe local use)
@@ -150,8 +150,50 @@ class Input(QD_OpNode):
         # Add new widget to layout
         if self._value_layout is not None and self._value_widget is not None:
             self._value_layout.addWidget(self._value_widget, 1)
+        # NEW: auto size the value widget based on its type/content
+        self._autosize_value_widget()
         self._auto_resize_after_value_change()
         self.update()
+
+    def _autosize_value_widget(self):  # NEW helper
+        """Auto shrink/expand the second widget based on current type.
+
+        Applied only when type changes (not on every keystroke) to satisfy the
+        requirement: on type switch, adjust size of the value entry control.
+        """
+        w = self._value_widget
+        if w is None:
+            return
+        type_name = self._current_type_name()
+        # Base width from sizeHint
+        try:
+            hint_w = max(40, w.sizeHint().width())
+        except Exception:
+            hint_w = 80
+        # Strategy per type
+        if type_name == "BOOL":
+            # Very small combo
+            w.setFixedWidth(hint_w)
+        elif type_name == "INTEGER":
+            # Spin box typical width
+            w.setFixedWidth(hint_w)
+        elif type_name == "DECIMAL":
+            # Allow a bit more width; clamp
+            w.setFixedWidth(min(160, max(90, hint_w)))
+        elif type_name == "STRING":
+            # QTextEdit: set a comfortable width (content aware heuristics)
+            if isinstance(w, QTextEdit):
+                doc_text = w.toPlainText() or "示例"
+                fm = QFontMetrics(w.font())
+                est = fm.horizontalAdvance(doc_text[:30]) + 24  # padding
+                target = min(360, max(140, est))
+                w.setFixedWidth(target)
+        # Ask layout to recompute
+        try:
+            if self._container:
+                self._container.updateGeometry()
+        except Exception:
+            pass
 
     def _auto_resize_after_value_change(self):  # NEW helper
         if self._container is None:
