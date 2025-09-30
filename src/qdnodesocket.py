@@ -41,15 +41,17 @@ class SocketType(Enum):  # Data type classification for sockets
     INTEGER = auto()
     STRING = auto()
     BOOL = auto()
+    PROCESS = auto()  # NEW: process/control flow socket
 
 
 # --- Data type compatibility policy ---------------------------------------
 # Rules (OUT -> IN):
-# - STRING  -> STRING only
-# - BOOL    -> BOOL only
-# - INTEGER -> INTEGER or DECIMAL (widen)
-# - DECIMAL -> DECIMAL only (no implicit narrowing to INTEGER)
-# (Can be extended later with coercion / user-defined casts.)
+# - STRING   -> STRING only
+# - BOOL     -> BOOL only
+# - PROCESS  -> PROCESS only (control flow links)
+# - INTEGER  -> INTEGER or DECIMAL (widen)
+# - DECIMAL  -> DECIMAL only (no implicit narrowing to INTEGER)
+# (Extendable for future coercions.)
 
 def socket_data_type_match(out_socket: "QD_NodeSocket", in_socket: "QD_NodeSocket") -> bool:
     """Return True if data types are compatible for a connection OUT -> IN.
@@ -64,6 +66,8 @@ def socket_data_type_match(out_socket: "QD_NodeSocket", in_socket: "QD_NodeSocke
         return t_in == SocketType.STRING
     if t_out == SocketType.BOOL:
         return t_in == SocketType.BOOL
+    if t_out == SocketType.PROCESS:
+        return t_in == SocketType.PROCESS
     if t_out == SocketType.INTEGER:
         return t_in in (SocketType.INTEGER, SocketType.DECIMAL)
     if t_out == SocketType.DECIMAL:
@@ -81,6 +85,7 @@ _SOCKET_TYPE_COLOR = {
     SocketType.INTEGER: QColor("#ffb347"),
     SocketType.STRING: QColor("#2ecc71"),
     SocketType.BOOL: QColor("#c678dd"),
+    SocketType.PROCESS: QColor("#ffd700"),  # NEW distinct golden color
 }
 
 
@@ -92,6 +97,7 @@ class QD_NodeSocket(QGraphicsObject):
         SocketType.STRING: "S",
         SocketType.BOOL: "B",
         SocketType.DECIMAL: "D",
+        SocketType.PROCESS: "P",  # NEW label
     }
 
     def __init__(self, direction: SocketDirection, parent: Optional[QGraphicsObject], sock_type: SocketType = SocketType.DECIMAL):

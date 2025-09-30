@@ -28,17 +28,18 @@ class QD_OpScene(QD_GfxScene):
             QColor(0x33, 0x3f, 0x4c),  # minor grid
             QColor(0x44, 0x55, 0x66),  # major grid
         )
-        # Install op node factory set (Calc, Level, HasItem, Logic, Compare, Function)
+        # Install op node factory set (Calc, Level, HasItem, Logic, Compare, Function, Selector)
         self._install_default_node_factories()
 
     def _install_default_node_factories(self):  # noqa: D401
-        """Register default operational primitives (Calc + Level + HasItem + Logic + Compare + Function)."""
+        """Register default operational primitives."""
         self.register_node_type("等级", self._factory_level)
         self.register_node_type("物品", self._factory_hasitem)
         self.register_node_type("四则运算", self._factory_calc)
         self.register_node_type("关系运算", self._factory_compare)
         self.register_node_type("逻辑运算", self._factory_logic)
         self.register_node_type("函数", self._factory_function)
+        self.register_node_type("选择", self._factory_selector)  # NEW Selector node
 
     @staticmethod
     def _factory_calc():  # noqa: D401
@@ -69,6 +70,11 @@ class QD_OpScene(QD_GfxScene):
     def _factory_function():  # noqa: D401 NEW factory
         from nodes.op.math import Function
         return Function()
+
+    @staticmethod
+    def _factory_selector():  # noqa: D401 NEW factory
+        from nodes.op.selector import Selector
+        return Selector()
 
     # Example future hook
     def analyze(self):  # noqa: D401
