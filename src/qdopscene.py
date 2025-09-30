@@ -36,7 +36,8 @@ class QD_OpScene(QD_GfxScene):
         self.register_node_type("等级", self._factory_level)
         self.register_node_type("等级值", self._factory_getlevel)
         self.register_node_type("物品", self._factory_checkitem)
-        self.register_node_type("物品数量", self._factory_getitem)  # NEW GetItem
+        self.register_node_type("物品数量", self._factory_getitem)
+        self.register_node_type("输入", self._factory_input)  # NEW Input node
         self.register_node_type("四则运算", self._factory_calc)
         self.register_node_type("关系运算", self._factory_compare)
         self.register_node_type("逻辑运算", self._factory_logic)
@@ -99,6 +100,11 @@ class QD_OpScene(QD_GfxScene):
     def _factory_getitem():  # noqa: D401 NEW factory
         from nodes.op.game import GetItem
         return GetItem()
+
+    @staticmethod
+    def _factory_input():  # noqa: D401 NEW factory
+        from nodes.op import Input
+        return Input()
 
     # Example future hook
     def analyze(self):  # noqa: D401
