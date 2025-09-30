@@ -11,7 +11,7 @@ from PySide6.QtGui import QPainter, QPen, QColor, QTransform
 from PySide6.QtCore import QRectF, QPointF, Qt  # Added Qt
 
 # --- New imports for edge-connecting feature ---
-from qdnodesocket import QD_NodeSocket, SocketDirection  # type: ignore
+from qdnodesocket import QD_NodeSocket, SocketDirection, SocketType  # UPDATED import to include SocketType
 from qdedge import QD_Edge  # type: ignore
 from qdnode import QD_Node  # runtime import for deletion isinstance checks
 
@@ -127,9 +127,22 @@ class QD_GfxScene(QGraphicsScene):
 
     @staticmethod
     def _sockets_compatible(a: QD_NodeSocket, b: QD_NodeSocket) -> bool:
+        """Return True if sockets can be connected.
+
+        Rules:
+        - Must be different objects
+        - Must be opposite directions (IN vs OUT)
+        - Disallow INTEGER <-> STRING connections (both directions)
+          (Future: extend with coercion / implicit cast rules.)
+        """
         if a is b:
             return False
         if a.direction() == b.direction():
+            return False
+        t1 = a.socket_type()
+        t2 = b.socket_type()
+        # Block INTEGER <-> STRING in either order
+        if ({t1, t2} == {SocketType.INTEGER, SocketType.STRING}):
             return False
         return True
 

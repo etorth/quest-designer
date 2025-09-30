@@ -43,12 +43,20 @@ class SocketType(Enum):  # Data type classification for sockets
 
 
 # Palette (kept subtle to not overpower node visuals)
-_SOCKET_FILL_IN = QColor("#3a7f3a")      # greenish for inputs
-_SOCKET_FILL_OUT = QColor("#9555d6")    # purple for outputs
+_SOCKET_FILL_IN = QColor("#3a7f3a")      # greenish for inputs (legacy, kept for reference)
+_SOCKET_FILL_OUT = QColor("#9555d6")    # purple for outputs (legacy, kept for reference)
 _SOCKET_FILL_HOVER = QColor("#cccccc")   # generic hover overlay (mixed)
 _SOCKET_BORDER = QColor("#1c1c1c")
 _SOCKET_BORDER_HOVER = QColor("#eeeeee")
 _SOCKET_BORDER_HIGHLIGHT = QColor("#ffd866")
+
+# New: per-data-type base colors (chosen for contrast + dark theme comfort)
+_SOCKET_TYPE_COLOR = {
+    SocketType.DECIMAL: QColor("#4da6ff"),  # calming blue for floating/decimal numbers
+    SocketType.INTEGER: QColor("#ffb347"),  # soft orange for ints
+    SocketType.STRING:  QColor("#2ecc71"),  # green for textual values
+    SocketType.BOOL:    QColor("#c678dd"),  # lavender; shape also differentiates
+}
 
 
 class QD_NodeSocket(QGraphicsObject):
@@ -105,13 +113,19 @@ class QD_NodeSocket(QGraphicsObject):
     def paint(self, painter: QPainter, option, widget=None):  # noqa: D401
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
 
-        fill = _SOCKET_FILL_IN if self._direction == SocketDirection.IN else _SOCKET_FILL_OUT
+        # Base fill determined by socket data type now (instead of direction)
+        fill = _SOCKET_TYPE_COLOR.get(self._type, QColor("#666666"))
+        # Subtle direction cue: darken inputs a bit, lighten outputs a bit
+        if self._direction == SocketDirection.IN:
+            fill = fill.darker(110)
+        else:
+            fill = fill.lighter(110)
         if self._highlight:
             fill = fill.lighter(135)
         if self._hover:
-            fill = fill.lighter(130)
+            fill = fill.lighter(125)
         if self.isSelected():
-            fill = fill.lighter(150)
+            fill = fill.lighter(140)
 
         if self._highlight:
             pen_color = _SOCKET_BORDER_HIGHLIGHT
@@ -122,7 +136,29 @@ class QD_NodeSocket(QGraphicsObject):
         painter.setBrush(QBrush(fill))
 
         rect = self.boundingRect()
-        # QPainter angles: 0 at 3 o'clock, positive CCW; specify in 1/16 deg
+        r = self.RADIUS
+        # BOOL sockets: draw half-square instead of half-circle
+        if self._type == SocketType.BOOL:
+            if self._direction == SocketDirection.IN:
+                half_rect = QRectF(-r, -r, r, 2 * r)  # left half
+            else:
+                half_rect = QRectF(0, -r, r, 2 * r)   # right half
+            painter.drawRect(half_rect)
+            return
+        # DECIMAL sockets: directional triangle
+        if self._type == SocketType.DECIMAL:
+            if self._direction == SocketDirection.IN:
+                # Triangle pointing left: vertices at (0,-r), (-r,0), (0,r)
+                points = [(0, -r), (-r, 0), (0, r)]
+            else:
+                # Triangle pointing right: (0,-r), (r,0), (0,r)
+                points = [(0, -r), (r, 0), (0, r)]
+            from PySide6.QtGui import QPolygonF
+            poly = QPolygonF([QRectF(x, y, 0, 0).topLeft() for x, y in points])
+            painter.drawPolygon(poly)
+            return
+
+        # Other types (INTEGER, STRING): draw half-circle (existing behavior)
         if self._direction == SocketDirection.IN:
             # Left half: from 90° to 270° (span 180°)
             start = 90 * 16
@@ -137,18 +173,36 @@ class QD_NodeSocket(QGraphicsObject):
         from PySide6.QtGui import QPainterPath
         path = QPainterPath()
         rect = self.boundingRect()
+        r = self.RADIUS
+        if self._type == SocketType.BOOL:
+            if self._direction == SocketDirection.IN:
+                path.addRect(QRectF(-r, -r, r, 2 * r))
+            else:
+                path.addRect(QRectF(0, -r, r, 2 * r))
+            return path
+        if self._type == SocketType.DECIMAL:
+            # Triangular shape
+            if self._direction == SocketDirection.IN:
+                path.moveTo(0, -r)
+                path.lineTo(-r, 0)
+                path.lineTo(0, r)
+            else:
+                path.moveTo(0, -r)
+                path.lineTo(r, 0)
+                path.lineTo(0, r)
+            path.closeSubpath()
+            return path
         if self._direction == SocketDirection.IN:
+            # Left half-circle
             start = 90 * 16
             span = 180 * 16
         else:
+            # Right half-circle
             start = 270 * 16
             span = 180 * 16
-        # Build half-circle path using arcTo
-        # arcTo expects: x, y, w, h, startAngle(deg), sweepLength(deg)
-        # Convert from 1/16 deg values
         start_deg = start / 16.0
         span_deg = span / 16.0
-        path.moveTo(0, 0)  # center reference (optional for hit area)
+        path.moveTo(0, 0)
         path.arcMoveTo(rect, start_deg)
         path.arcTo(rect, start_deg, span_deg)
         path.closeSubpath()
