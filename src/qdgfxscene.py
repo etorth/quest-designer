@@ -120,7 +120,7 @@ class QD_GfxScene(QGraphicsScene):
     def _clear_hover_target(self):
         if self._hover_target_socket is not None:
             try:
-                self._hover_target_socket.set_highlight(False)
+                self._hover_target_socket.setHighlight(False)
             except Exception:  # pragma: no cover
                 pass
         self._hover_target_socket = None
@@ -139,8 +139,8 @@ class QD_GfxScene(QGraphicsScene):
             return False
         if a.direction() == b.direction():
             return False
-        t1 = a.socket_type()
-        t2 = b.socket_type()
+        t1 = a.socketType()
+        t2 = b.socketType()
         # Block INTEGER <-> STRING in either order
         if ({t1, t2} == {SocketType.INTEGER, SocketType.STRING}):
             return False
@@ -161,14 +161,14 @@ class QD_GfxScene(QGraphicsScene):
                         event.accept()
                         return
                     if self._sockets_compatible(self._connecting_socket, sock_item):
-                        self._connecting_edge.finalize_with(sock_item)
-                        self._connecting_edge.update_path()
+                        self._connecting_edge.finalizeWith(sock_item)
+                        self._connecting_edge.updatePath()
                         try:
-                            self._connecting_socket.set_highlight(False)
+                            self._connecting_socket.setHighlight(False)
                         except Exception:
                             pass
                         try:
-                            sock_item.set_highlight(False)
+                            sock_item.setHighlight(False)
                         except Exception:
                             pass
                         self._clear_hover_target()
@@ -177,7 +177,7 @@ class QD_GfxScene(QGraphicsScene):
                         event.accept()
                         return
                 if self._connecting_edge is not None:
-                    self._connecting_edge.update_dynamic_end(event.scenePos())
+                    self._connecting_edge.updateDynamicEnd(event.scenePos())
                     event.accept()
                     return
             if isinstance(item, QD_NodeSocket) and self._connecting_edge is None:
@@ -185,21 +185,21 @@ class QD_GfxScene(QGraphicsScene):
                 edge = QD_Edge(begin=self._connecting_socket)
                 self._connecting_edge = edge
                 self.addItem(edge)
-                edge.update_dynamic_end(event.scenePos())
-                self._connecting_socket.set_highlight(True)
+                edge.updateDynamicEnd(event.scenePos())
+                self._connecting_socket.setHighlight(True)
                 event.accept()
                 return
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):  # noqa: D401
         if self._connecting_edge is not None and self._connecting_socket is not None:
-            self._connecting_edge.update_dynamic_end(event.scenePos())
+            self._connecting_edge.updateDynamicEnd(event.scenePos())
             item = self.itemAt(event.scenePos(), QTransform())
             candidate = item if isinstance(item, QD_NodeSocket) else None
             if candidate and self._sockets_compatible(self._connecting_socket, candidate):
                 if candidate is not self._hover_target_socket:
                     self._clear_hover_target()
-                    candidate.set_highlight(True)
+                    candidate.setHighlight(True)
                     self._hover_target_socket = candidate
             else:
                 if candidate is None or candidate is not self._hover_target_socket:
@@ -224,10 +224,10 @@ class QD_GfxScene(QGraphicsScene):
                 nodes_to_delete.append(item)
         for node in nodes_to_delete:
             try:
-                for sock in node.input_sockets():
+                for sock in node.inputSockets():
                     for e in sock.edges():
                         edges_to_delete.add(e)
-                for sock in node.output_sockets():
+                for sock in node.outputSockets():
                     for e in sock.edges():
                         edges_to_delete.add(e)
             except Exception:
@@ -277,7 +277,7 @@ class QD_GfxScene(QGraphicsScene):
                 pass
         if self._connecting_socket is not None:
             try:
-                self._connecting_socket.set_highlight(False)
+                self._connecting_socket.setHighlight(False)
             except Exception:
                 pass
         self._clear_hover_target()

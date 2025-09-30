@@ -91,27 +91,43 @@ class QD_NodeSocket(QGraphicsObject):
     def direction(self) -> SocketDirection:
         return self._direction
 
-    def socket_type(self) -> SocketType:
+    def socketType(self) -> SocketType:  # camelCase
         return self._type
 
-    def add_edge(self, edge: 'QD_Edge'):
+    # Deprecated alias
+    def socket_type(self) -> SocketType:  # noqa: D401
+        return self.socketType()
+
+    def addEdge(self, edge: 'QD_Edge'):
         if edge not in self._edges:
             self._edges.append(edge)
 
-    def remove_edge(self, edge: 'QD_Edge'):
+    def add_edge(self, edge: 'QD_Edge'):  # deprecated alias
+        self.addEdge(edge)
+
+    def removeEdge(self, edge: 'QD_Edge'):
         if edge in self._edges:
             self._edges.remove(edge)
+
+    def remove_edge(self, edge: 'QD_Edge'):  # deprecated alias
+        self.removeEdge(edge)
 
     def edges(self) -> List['QD_Edge']:
         return list(self._edges)
 
-    def is_occupied(self) -> bool:
+    def isOccupied(self) -> bool:
         return len(self._edges) > 0
 
-    def set_highlight(self, flag: bool):
+    def is_occupied(self) -> bool:  # deprecated alias
+        return self.isOccupied()
+
+    def setHighlight(self, flag: bool):
         if self._highlight != flag:
             self._highlight = flag
             self.update()
+
+    def set_highlight(self, flag: bool):  # deprecated alias
+        self.setHighlight(flag)
 
     # --- QGraphicsItem overrides -----------------------------------------
     def boundingRect(self) -> QRectF:  # noqa: D401
@@ -178,4 +194,4 @@ class QD_NodeSocket(QGraphicsObject):
         return self.RADIUS
 
     def __repr__(self) -> str:  # noqa: D401
-        return f"<QD_NodeSocket dir={self._direction.name} type={self._type.name} occupied={self.is_occupied()}>"
+        return f"<QD_NodeSocket dir={self._direction.name} type={self._type.name} occupied={self.isOccupied()}>"

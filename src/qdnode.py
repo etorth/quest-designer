@@ -72,7 +72,7 @@ class QD_Node(QGraphicsObject):
         self.setAcceptHoverEvents(True)
 
     # --- Socket type policy (NEW) ---------------------------------------
-    def default_socket_type(self, direction: SocketDirection):  # noqa: D401
+    def defaultSocketType(self, direction: SocketDirection):  # noqa: D401 camelCase
         """Return default SocketType for this node and direction.
 
         Base QD_Node defaults to DECIMAL for all directions; subclasses may
@@ -80,6 +80,10 @@ class QD_Node(QGraphicsObject):
         that mix types should construct sockets explicitly with types.
         """
         return SocketType.DECIMAL
+
+    # Deprecated alias
+    def default_socket_type(self, direction: SocketDirection):  # noqa: D401
+        return self.defaultSocketType(direction)
 
     # --- Required QGraphicsItem interface ---
     def boundingRect(self) -> QRectF:  # noqa: D401
@@ -197,29 +201,49 @@ class QD_Node(QGraphicsObject):
         return self._embedded_widget
 
     # --- Socket accessors (NEW) ---
-    def input_sockets(self) -> List[QD_NodeSocket]:  # noqa: D401
+    def inputSockets(self) -> List[QD_NodeSocket]:  # camelCase
         return self._in_sockets if self._in_sockets is not None else []
 
-    def output_sockets(self) -> List[QD_NodeSocket]:  # noqa: D401
+    def input_sockets(self) -> List[QD_NodeSocket]:  # deprecated alias
+        return self.inputSockets()
+
+    def outputSockets(self) -> List[QD_NodeSocket]:  # camelCase
         return self._out_sockets if self._out_sockets is not None else []
 
-    def add_input_socket(self, socket: QD_NodeSocket | None = None, *, sock_type: SocketType | None = None) -> QD_NodeSocket:
+    def output_sockets(self) -> List[QD_NodeSocket]:  # deprecated alias
+        return self.outputSockets()
+
+    def addInputSocket(self, socket: QD_NodeSocket | None = None, *, sock_type: SocketType | None = None) -> QD_NodeSocket:
         if self._in_sockets is None:
             self._in_sockets = []
         if socket is None:
-            stype: SocketType = sock_type if sock_type is not None else self.default_socket_type(SocketDirection.IN)
+            stype: SocketType = sock_type if sock_type is not None else self.defaultSocketType(SocketDirection.IN)
             socket = QD_NodeSocket(SocketDirection.IN, self, stype)
+        try:
+            socket.setZValue(-0.5)
+        except Exception:
+            pass
         self._in_sockets.append(socket)
         return socket
 
-    def add_output_socket(self, socket: QD_NodeSocket | None = None, *, sock_type: SocketType | None = None) -> QD_NodeSocket:
+    def add_input_socket(self, socket: QD_NodeSocket | None = None, *, sock_type: SocketType | None = None):  # deprecated alias
+        return self.addInputSocket(socket, sock_type=sock_type)
+
+    def addOutputSocket(self, socket: QD_NodeSocket | None = None, *, sock_type: SocketType | None = None) -> QD_NodeSocket:
         if self._out_sockets is None:
             self._out_sockets = []
         if socket is None:
-            stype: SocketType = sock_type if sock_type is not None else self.default_socket_type(SocketDirection.OUT)
+            stype: SocketType = sock_type if sock_type is not None else self.defaultSocketType(SocketDirection.OUT)
             socket = QD_NodeSocket(SocketDirection.OUT, self, stype)
+        try:
+            socket.setZValue(-0.5)
+        except Exception:
+            pass
         self._out_sockets.append(socket)
         return socket
+
+    def add_output_socket(self, socket: QD_NodeSocket | None = None, *, sock_type: SocketType | None = None):  # deprecated alias
+        return self.addOutputSocket(socket, sock_type=sock_type)
 
     def itemChange(self, change, value):  # noqa: D401
         try:

@@ -58,96 +58,111 @@ class QD_Edge(QGraphicsPathItem):
         self.setZValue(-1)  # draw beneath nodes/sockets
 
         if begin:
-            self.set_begin_socket(begin)
+            self.setBeginSocket(begin)
         if end:
-            self.set_end_socket(end)
-        self.update_path()
+            self.setEndSocket(end)
+        self.updatePath()
 
     # --- Socket management ------------------------------------------------
-    def set_begin_socket(self, socket: QD_NodeSocket):
+    def setBeginSocket(self, socket: QD_NodeSocket):
         if self._begin is socket:
             return
         if self._begin is not None:
-            self._begin.remove_edge(self)
+            self._begin.removeEdge(self)
         self._begin = socket
-        socket.add_edge(self)
-        self._auto_orient()
-        self._update_status_after_socket_change()
-        self.update_path()
+        socket.addEdge(self)
+        self._autoOrient()
+        self._updateStatusAfterSocketChange()
+        self.updatePath()
 
-    def set_end_socket(self, socket: QD_NodeSocket):
+    def set_begin_socket(self, socket: QD_NodeSocket):  # deprecated alias
+        self.setBeginSocket(socket)
+
+    def setEndSocket(self, socket: QD_NodeSocket):
         if self._end is socket:
             return
         if self._end is not None:
-            self._end.remove_edge(self)
+            self._end.removeEdge(self)
         self._end = socket
-        socket.add_edge(self)
-        self._auto_orient()
-        self._update_status_after_socket_change()
-        self.update_path()
+        socket.addEdge(self)
+        self._autoOrient()
+        self._updateStatusAfterSocketChange()
+        self.updatePath()
 
-    def finalize_with(self, socket: QD_NodeSocket):  # convenience
+    def set_end_socket(self, socket: QD_NodeSocket):  # deprecated alias
+        self.setEndSocket(socket)
+
+    def finalizeWith(self, socket: QD_NodeSocket):  # convenience
         if self._begin is None:
-            self.set_begin_socket(socket)
+            self.setBeginSocket(socket)
         elif self._end is None:
-            self.set_end_socket(socket)
-        self._update_status_after_socket_change()
+            self.setEndSocket(socket)
+        self._updateStatusAfterSocketChange()
 
-    def mark_deleting(self):
+    def finalize_with(self, socket: QD_NodeSocket):  # deprecated alias
+        self.finalizeWith(socket)
+
+    def markDeleting(self):
         self._status = EdgeStatus.DELETING
         self.update()
 
+    def mark_deleting(self):  # deprecated alias
+        self.markDeleting()
+
     def detach(self):  # NEW convenience
         if self._begin:
-            self._begin.remove_edge(self)
+            self._begin.removeEdge(self)
         if self._end:
-            self._end.remove_edge(self)
+            self._end.removeEdge(self)
         self._begin = None
         self._end = None
         self._status = EdgeStatus.CONNECTING
         self._temp_pos = None
-        self.update_path()
+        self.updatePath()
 
     # --- Status / orientation ---------------------------------------------
-    def status(self) -> EdgeStatus:
+    def status(self) -> EdgeStatus:  # unchanged
         return self._status
 
-    def _update_status_after_socket_change(self):
+    def _updateStatusAfterSocketChange(self):
         if self._status == EdgeStatus.DELETING:
-            return  # keep deleting status sticky
+            return
         if self._begin and self._end:
             self._status = EdgeStatus.DONE
             self._temp_pos = None
         else:
             self._status = EdgeStatus.CONNECTING
 
-    def _auto_orient(self):
-        """Ensure OUT -> IN ordering when both sockets present.
-        (Purely cosmetic orientation; does not modify actual graph semantics.)"""
+    def _update_status_after_socket_change(self):  # deprecated alias
+        self._updateStatusAfterSocketChange()
+
+    def _autoOrient(self):
         if self._begin and self._end:
             if (self._begin.direction() == SocketDirection.IN and
                     self._end.direction() == SocketDirection.OUT):
-                # Swap so path flows left->right or out->in visually
                 self._begin, self._end = self._end, self._begin
 
+    def _auto_orient(self):  # deprecated alias
+        self._autoOrient()
+
     # --- Dynamic connecting -----------------------------------------------
-    def update_dynamic_end(self, scene_pos: QPointF):
-        """While in CONNECTING status with only one socket, set the temporary
-        floating endpoint (mouse-driven)."""
+    def updateDynamicEnd(self, scene_pos: QPointF):
         if self._status != EdgeStatus.CONNECTING:
             return
         if self._begin and self._end:
-            return  # already complete
+            return
         self._temp_pos = scene_pos
-        self.update_path()
+        self.updatePath()
+
+    def update_dynamic_end(self, scene_pos: QPointF):  # deprecated alias
+        self.updateDynamicEnd(scene_pos)
 
     # --- Geometry/path ----------------------------------------------------
-    def _endpoint_positions(self) -> Optional[Tuple[QPointF, QPointF]]:
+    def _endpointPositions(self) -> Optional[Tuple[QPointF, QPointF]]:
         if self._begin and self._end:
             p1 = self._begin.scenePos()
             p2 = self._end.scenePos()
             return p1, p2
-        # CONNECTING with one socket and temp pos
         if self._status == EdgeStatus.CONNECTING and self._temp_pos is not None:
             if self._begin and not self._end:
                 return self._begin.scenePos(), self._temp_pos
@@ -155,8 +170,11 @@ class QD_Edge(QGraphicsPathItem):
                 return self._temp_pos, self._end.scenePos()
         return None
 
-    def update_path(self):  # public so external controllers can force recompute
-        endpoints = self._endpoint_positions()
+    def _endpoint_positions(self):  # deprecated alias
+        return self._endpointPositions()
+
+    def updatePath(self):  # public
+        endpoints = self._endpointPositions()
         path = QPainterPath()
         if endpoints is None:
             self.setPath(path)
@@ -167,11 +185,9 @@ class QD_Edge(QGraphicsPathItem):
         if p1 == p2:
             path.addEllipse(p1, 1.5, 1.5)
         else:
-            # Cubic curve with horizontal-ish tangents
             dx = (p2.x() - p1.x()) * 0.5
             ctrl1 = QPointF(p1.x() + dx, p1.y())
             ctrl2 = QPointF(p2.x() - dx, p2.y())
-            # If nearly vertical, adjust to vertical curve
             if abs(p2.x() - p1.x()) < 10:
                 dy = (p2.y() - p1.y()) * 0.5
                 ctrl1 = QPointF(p1.x(), p1.y() + dy)
@@ -179,6 +195,9 @@ class QD_Edge(QGraphicsPathItem):
             path.cubicTo(ctrl1, ctrl2, p2)
         self.setPath(path)
         self.update()
+
+    def update_path(self):  # deprecated alias
+        self.updatePath()
 
     # --- Painting ---------------------------------------------------------
     def paint(self, painter, option, widget=None):  # noqa: D401
@@ -207,17 +226,32 @@ class QD_Edge(QGraphicsPathItem):
         painter.drawPath(self.path())
 
     # --- Utilities --------------------------------------------------------
-    def begin_socket(self) -> Optional[QD_NodeSocket]:  # noqa: D401
+    def beginSocket(self) -> Optional[QD_NodeSocket]:  # camelCase
         return self._begin
 
-    def end_socket(self) -> Optional[QD_NodeSocket]:  # noqa: D401
+    def begin_socket(self):  # deprecated alias
+        return self.beginSocket()
+
+    def endSocket(self) -> Optional[QD_NodeSocket]:
         return self._end
 
-    def is_complete(self) -> bool:  # noqa: D401
+    def end_socket(self):  # deprecated alias
+        return self.endSocket()
+
+    def isComplete(self) -> bool:
         return self._status == EdgeStatus.DONE and self._begin is not None and self._end is not None
 
-    def is_connecting(self) -> bool:  # noqa: D401
+    def is_complete(self):  # deprecated alias
+        return self.isComplete()
+
+    def isConnecting(self) -> bool:
         return self._status == EdgeStatus.CONNECTING
 
-    def is_deleting(self) -> bool:  # noqa: D401
+    def is_connecting(self):  # deprecated alias
+        return self.isConnecting()
+
+    def isDeleting(self) -> bool:
         return self._status == EdgeStatus.DELETING
+
+    def is_deleting(self):  # deprecated alias
+        return self.isDeleting()
