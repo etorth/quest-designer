@@ -2,7 +2,7 @@
 """Fundamental quest designer node type (refactored to snake_case APIs)."""
 from PySide6.QtWidgets import QGraphicsObject, QGraphicsItem, QGraphicsProxyWidget, QWidget
 from PySide6.QtGui import QPainter, QPen, QBrush, QColor, QFont
-from PySide6.QtCore import QRectF, Qt
+from PySide6.QtCore import QRectF, Qt, QEvent
 from typing import List, Optional
 from qdnodesocket import QD_NodeSocket, SocketDirection, SocketType
 
@@ -18,6 +18,9 @@ _NODE_TEXT_COLOR = QColor("#ffffff")
 # Layout constants for embedded widget support (NEW)
 _TITLE_BAR_HEIGHT = 22  # space reserved for title text
 _CONTENT_PADDING = 6    # inner padding around embedded widget
+_MIN_NODE_WIDTH = 120   # NEW: basic safety minimum
+_MIN_NODE_HEIGHT = 50   # NEW: basic safety minimum (excluding widget growth)
+_RESIZE_MARGIN = 6      # NEW: pixel margin for edge resize detection
 
 
 class QD_Node(QGraphicsObject):
@@ -32,6 +35,17 @@ class QD_Node(QGraphicsObject):
         # Embedded widget proxy (NEW)
         self._proxy: QGraphicsProxyWidget | None = None
         self._embedded_widget: QWidget | None = None
+        # Track last fitted size to avoid redundant geometry changes (NEW)
+        self._last_fit_w = self._w
+        self._last_fit_h = self._h
+        # --- Resize interaction state (NEW) ---
+        self._resizing = False
+        self._resize_left = False
+        self._resize_right = False
+        self._resize_top = False
+        self._resize_bottom = False
+        self._resize_origin_scene = None
+        self._orig_rect = None  # (x, y, w, h)
 
         # --- Validate provided sockets (if any) ---
         if in_sockets is not None:
@@ -139,11 +153,7 @@ class QD_Node(QGraphicsObject):
     # --- Embedded widget support -----------------------------------------
     def set_embedded_widget(self, widget: QWidget | None, auto_resize: bool = True, padding: int = _CONTENT_PADDING):  # noqa: D401
         """Embed (or replace) a QWidget inside the node.
-
-        The widget is wrapped in a QGraphicsProxyWidget and positioned inside
-        the node's body below the title bar. If auto_resize is True, the node
-        resizes to fit the widget (respecting padding + title bar height).
-        Passing None removes any existing embedded widget.
+        Ensures node always at least large enough to contain widget + padding.
         """
         # Remove previous
         if self._proxy is not None:
@@ -153,29 +163,54 @@ class QD_Node(QGraphicsObject):
                 pass
             self._proxy = None
             self._embedded_widget = None
-
         if widget is None:
             self.update()
             return None
-
         self._embedded_widget = widget
         self._proxy = QGraphicsProxyWidget(self)
         self._proxy.setWidget(widget)
-        y0 = _TITLE_BAR_HEIGHT
+        try:
+            widget.installEventFilter(self)  # monitor size/layout changes
+        except Exception:
+            pass
         widget.resize(widget.sizeHint())
-        wsize = widget.size()
         if auto_resize:
-            needed_w = wsize.width() + padding * 2
-            needed_h = y0 + wsize.height() + padding
-            if needed_w > self._w:
-                self._w = needed_w
-            if needed_h > self._h:
-                self._h = needed_h
-        # Use new centering helper (exclude title bar vertically)
-        self._center_embedded_widget_in_body(padding)
-        self.prepareGeometryChange()
+            self._fit_node_to_widget(padding)
+        else:
+            self._center_embedded_widget_in_body(padding)
         self.update()
         return widget
+
+    def _fit_node_to_widget(self, padding: int = _CONTENT_PADDING):  # NEW
+        if not self._embedded_widget:
+            return
+        w_hint = max(self._embedded_widget.sizeHint().width(), self._embedded_widget.width())
+        h_hint = max(self._embedded_widget.sizeHint().height(), self._embedded_widget.height())
+        needed_w = max(_MIN_NODE_WIDTH, w_hint + padding * 2)
+        needed_h = max(_MIN_NODE_HEIGHT, _TITLE_BAR_HEIGHT + h_hint + padding)
+        if needed_w != self._w or needed_h != self._h:
+            try:
+                self.prepareGeometryChange()
+            except Exception:
+                pass
+            self._w = needed_w
+            self._h = needed_h
+            self._last_fit_w = needed_w
+            self._last_fit_h = needed_h
+        # Always center after size change
+        self._center_embedded_widget_in_body(padding)
+        # Relayout sockets if subclass implements
+        layout_method = getattr(self, "_layout_sockets", None)
+        if callable(layout_method):
+            try:
+                layout_method()  # type: ignore
+            except Exception:
+                pass
+
+    def eventFilter(self, watched, event):  # NEW override
+        if watched is self._embedded_widget and event.type() in (QEvent.Type.Resize, QEvent.Type.LayoutRequest):
+            self._fit_node_to_widget()
+        return super().eventFilter(watched, event)
 
     def _center_embedded_widget_in_body(self, padding: int = _CONTENT_PADDING):
         """Center the embedded widget in the content region (excluding title bar).
@@ -250,5 +285,138 @@ class QD_Node(QGraphicsObject):
         except Exception:  # pragma: no cover - defensive
             pass
         return super().itemChange(change, value)
+
+    # --- Resize helpers (NEW) -------------------------------------------
+    def _detect_resize_edges(self, pos) -> tuple[bool, bool, bool, bool]:
+        """Return (left, right, top, bottom) booleans if cursor is near edges.
+        pos is in local coordinates.
+        """
+        m = _RESIZE_MARGIN
+        within = 0 <= pos.x() <= self._w and 0 <= pos.y() <= self._h
+        if not within:
+            return False, False, False, False
+        left = abs(pos.x() - 0) <= m
+        right = abs(pos.x() - self._w) <= m
+        top = abs(pos.y() - 0) <= m
+        bottom = abs(pos.y() - self._h) <= m
+        return left, right, top, bottom
+
+    def _set_cursor_for_edges(self, left, right, top, bottom):  # NEW
+        if self._resizing:
+            return  # keep current cursor during active resize
+        if (left or right) and (top or bottom):
+            # Corner
+            if (left and top) or (right and bottom):
+                self.setCursor(Qt.CursorShape.SizeFDiagCursor)
+            else:
+                self.setCursor(Qt.CursorShape.SizeBDiagCursor)
+        elif left or right:
+            self.setCursor(Qt.CursorShape.SizeHorCursor)
+        elif top or bottom:
+            self.setCursor(Qt.CursorShape.SizeVerCursor)
+        else:
+            self.setCursor(Qt.CursorShape.ArrowCursor)
+
+    def _min_allowed_size(self):  # NEW
+        pad = _CONTENT_PADDING
+        if self._embedded_widget:
+            w_needed = self._embedded_widget.sizeHint().width() + pad * 2
+            h_needed = _TITLE_BAR_HEIGHT + self._embedded_widget.sizeHint().height() + pad
+        else:
+            w_needed = _MIN_NODE_WIDTH
+            h_needed = _MIN_NODE_HEIGHT
+        return max(_MIN_NODE_WIDTH, w_needed), max(_MIN_NODE_HEIGHT, h_needed)
+
+    # --- Event overrides additions (NEW) --------------------------------
+    def hoverMoveEvent(self, event):  # augment existing hover logic
+        # existing hover logic preserved
+        left, right, top, bottom = self._detect_resize_edges(event.pos())
+        self._set_cursor_for_edges(left, right, top, bottom)
+        super().hoverMoveEvent(event)
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton and not self._resizing:
+            left, right, top, bottom = self._detect_resize_edges(event.pos())
+            if left or right or top or bottom:
+                self._resizing = True
+                self._resize_left = left
+                self._resize_right = right
+                self._resize_top = top
+                self._resize_bottom = bottom
+                self._resize_origin_scene = event.scenePos()
+                self._orig_rect = (self.x(), self.y(), self._w, self._h)
+                event.accept()
+                return
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        if self._resizing and self._orig_rect is not None and self._resize_origin_scene is not None:
+            ox, oy, ow, oh = self._orig_rect
+            delta = event.scenePos() - self._resize_origin_scene
+            dx = delta.x()
+            dy = delta.y()
+            new_x = ox
+            new_y = oy
+            new_w = ow
+            new_h = oh
+            if self._resize_left:
+                new_w = ow - dx
+                new_x = ox + dx
+            if self._resize_right:
+                new_w = ow + dx
+            if self._resize_top:
+                new_h = oh - dy
+                new_y = oy + dy
+            if self._resize_bottom:
+                new_h = oh + dy
+            # Enforce minimums and embedded widget constraints
+            min_w, min_h = self._min_allowed_size()
+            if new_w < min_w:
+                # adjust x if dragging left
+                if self._resize_left:
+                    new_x -= (min_w - new_w)
+                new_w = min_w
+            if new_h < min_h:
+                if self._resize_top:
+                    new_y -= (min_h - new_h)
+                new_h = min_h
+            # Prevent negative width/height flips
+            if new_w <= 0 or new_h <= 0:
+                return
+            # Apply geometry
+            if (new_w != self._w) or (new_h != self._h):
+                try:
+                    self.prepareGeometryChange()
+                except Exception:
+                    pass
+                self._w = new_w
+                self._h = new_h
+            if new_x != self.x() or new_y != self.y():
+                # move triggers itemChange for edges
+                self.setPos(new_x, new_y)
+            # Recenter embedded widget & layout sockets
+            try:
+                self._center_embedded_widget_in_body()
+            except Exception:
+                pass
+            layout_method = getattr(self, "_layout_sockets", None)
+            if callable(layout_method):
+                try:
+                    layout_method()  # type: ignore
+                except Exception:
+                    pass
+            self.update()
+            event.accept()
+            return
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        if self._resizing and event.button() == Qt.MouseButton.LeftButton:
+            self._resizing = False
+            self._resize_left = self._resize_right = self._resize_top = self._resize_bottom = False
+            self.setCursor(Qt.CursorShape.ArrowCursor)
+            event.accept()
+            return
+        super().mouseReleaseEvent(event)
 
 __all__ = ["QD_Node"]

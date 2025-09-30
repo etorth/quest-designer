@@ -55,6 +55,7 @@ class Input(QD_OpNode):
         self._value_widget: QWidget | None = None  # dynamic second widget
         self._value_layout: QHBoxLayout | None = None
         self._combo_type: QComboBox | None = None
+        self._combo_fixed_width: int | None = None  # NEW: store fixed width so it stays stable
         self._container: QWidget | None = None  # NEW: store embedded container
         self._init_embedded_ui()
         self._layout_sockets()
@@ -67,6 +68,8 @@ class Input(QD_OpNode):
         self._value_layout = layout
         self._combo_type = QComboBox(container)
         self._combo_type.addItems(["BOOL", "INTEGER", "DECIMAL", "STRING"])
+        # Lock width so it doesn't resize on selection change
+        self._freeze_combo_width()
         self._combo_type.currentIndexChanged.connect(self._on_type_changed)
         layout.addWidget(self._combo_type)
         # Set default selection to BOOL (was STRING before); rebuild value widget accordingly
@@ -74,6 +77,26 @@ class Input(QD_OpNode):
         self._rebuild_value_widget()
         self._container = container
         self.set_embedded_widget(self._container, auto_resize=True)
+
+    def _freeze_combo_width(self):  # NEW helper
+        if not self._combo_type:
+            return
+        fm = self._combo_type.fontMetrics()  # QFontMetrics for its font
+        max_w = 0
+        for i in range(self._combo_type.count()):
+            text = self._combo_type.itemText(i)
+            max_w = max(max_w, fm.horizontalAdvance(text))
+        # Add padding for icon/arrow + margins
+        target_w = max_w + 32
+        # Cache and set fixed width only once; prevents jitter when content changes
+        self._combo_fixed_width = target_w
+        self._combo_type.setMinimumWidth(target_w)
+        self._combo_type.setMaximumWidth(target_w)
+        # Avoid internal size adjustments overriding fixed width
+        try:
+            self._combo_type.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+        except Exception:
+            pass
 
     # --- Value widget management ----------------------------------------
     def _current_type_name(self) -> str:
@@ -201,20 +224,16 @@ class Input(QD_OpNode):
             # Very small combo
             w.setFixedWidth(hint_w)
         elif type_name == "INTEGER":
-            # Spin box typical width
             w.setFixedWidth(hint_w)
         elif type_name == "DECIMAL":
-            # Allow a bit more width; clamp
             w.setFixedWidth(min(160, max(90, hint_w)))
         elif type_name == "STRING":
-            # QTextEdit: set a comfortable width (content aware heuristics)
             if isinstance(w, QTextEdit):
                 doc_text = w.toPlainText() or "示例"
                 fm = QFontMetrics(w.font())
                 est = fm.horizontalAdvance(doc_text[:30]) + 24  # padding
                 target = min(360, max(140, est))
                 w.setFixedWidth(target)
-        # Ask layout to recompute
         try:
             if self._container:
                 self._container.updateGeometry()
@@ -224,13 +243,11 @@ class Input(QD_OpNode):
     def _auto_resize_after_value_change(self):  # NEW helper
         if self._container is None:
             return
-        # Let layout compute size
         self._container.adjustSize()
         hint = self._container.sizeHint()
         padding = _NODE_CONTENT_PADDING
         needed_w = hint.width() + padding * 2
         needed_h = _NODE_TITLE_BAR_HEIGHT + hint.height() + padding
-        # Allow shrinking: clamp to recorded base minimums
         desired_w = max(self._base_min_w, needed_w)
         desired_h = max(self._base_min_h, needed_h)
         size_changed = (desired_w != self._w) or (desired_h != self._h)
@@ -241,12 +258,10 @@ class Input(QD_OpNode):
                 pass
             self._w = desired_w
             self._h = desired_h
-        # Recenter existing proxy widget (using base class helper) if available
         try:
             self._center_embedded_widget_in_body(padding)
         except Exception:
             pass
-        # Re-layout socket after size change
         self._layout_sockets()
 
     # --- Validation feedback --------------------------------------------
