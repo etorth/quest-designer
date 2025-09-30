@@ -21,8 +21,8 @@ from __future__ import annotations
 from enum import Enum, auto
 from typing import Optional, List, TYPE_CHECKING
 from PySide6.QtWidgets import QGraphicsObject, QGraphicsItem
-from PySide6.QtGui import QPainter, QPen, QBrush, QColor
-from PySide6.QtCore import QRectF
+from PySide6.QtGui import QPainter, QPen, QBrush, QColor, QPolygonF, QPainterPath  # UPDATED imports
+from PySide6.QtCore import QRectF, QPointF  # UPDATED import with QPointF
 
 if TYPE_CHECKING:  # avoid runtime import cycle
     from qdedge import QD_Edge
@@ -61,6 +61,7 @@ _SOCKET_TYPE_COLOR = {
 
 class QD_NodeSocket(QGraphicsObject):
     RADIUS = 6.0
+    _TRIANGLE_SCALE = 1.4  # enlargement factor for DECIMAL sockets (triangles)
 
     def __init__(self, direction: SocketDirection, parent: Optional[QGraphicsObject], sock_type: SocketType = SocketType.DECIMAL):
         if parent is None:
@@ -108,6 +109,16 @@ class QD_NodeSocket(QGraphicsObject):
     # --- QGraphicsItem overrides -----------------------------------------
     def boundingRect(self) -> QRectF:  # noqa: D401
         r = self.RADIUS
+        # Expand bounding rect for enlarged triangle sockets
+        if self._type == SocketType.DECIMAL:
+            scale = self._TRIANGLE_SCALE
+            if self._direction == SocketDirection.IN:
+                left = -r * scale
+                right = r  # keep right side at original center-to-right extent
+            else:  # OUT
+                left = -r
+                right = r * scale
+            return QRectF(left, -r, right - left, 2 * r)
         return QRectF(-r, -r, 2 * r, 2 * r)
 
     def paint(self, painter: QPainter, option, widget=None):  # noqa: D401
@@ -145,16 +156,14 @@ class QD_NodeSocket(QGraphicsObject):
                 half_rect = QRectF(0, -r, r, 2 * r)   # right half
             painter.drawRect(half_rect)
             return
-        # DECIMAL sockets: directional triangle
+        # DECIMAL sockets: enlarged directional triangle
         if self._type == SocketType.DECIMAL:
+            scale = self._TRIANGLE_SCALE
             if self._direction == SocketDirection.IN:
-                # Triangle pointing left: vertices at (0,-r), (-r,0), (0,r)
-                points = [(0, -r), (-r, 0), (0, r)]
+                points = [QPointF(0, -r), QPointF(-r * scale, 0), QPointF(0, r)]
             else:
-                # Triangle pointing right: (0,-r), (r,0), (0,r)
-                points = [(0, -r), (r, 0), (0, r)]
-            from PySide6.QtGui import QPolygonF
-            poly = QPolygonF([QRectF(x, y, 0, 0).topLeft() for x, y in points])
+                points = [QPointF(0, -r), QPointF(r * scale, 0), QPointF(0, r)]
+            poly = QPolygonF(points)
             painter.drawPolygon(poly)
             return
 
@@ -170,7 +179,6 @@ class QD_NodeSocket(QGraphicsObject):
         painter.drawPie(rect, start, span)
 
     def shape(self):  # noqa: D401
-        from PySide6.QtGui import QPainterPath
         path = QPainterPath()
         rect = self.boundingRect()
         r = self.RADIUS
@@ -181,14 +189,14 @@ class QD_NodeSocket(QGraphicsObject):
                 path.addRect(QRectF(0, -r, r, 2 * r))
             return path
         if self._type == SocketType.DECIMAL:
-            # Triangular shape
+            scale = self._TRIANGLE_SCALE
             if self._direction == SocketDirection.IN:
                 path.moveTo(0, -r)
-                path.lineTo(-r, 0)
+                path.lineTo(-r * scale, 0)
                 path.lineTo(0, r)
             else:
                 path.moveTo(0, -r)
-                path.lineTo(r, 0)
+                path.lineTo(r * scale, 0)
                 path.lineTo(0, r)
             path.closeSubpath()
             return path
