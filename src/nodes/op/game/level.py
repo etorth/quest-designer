@@ -6,7 +6,7 @@ socket (e.g., sequencing levels or gating flow). Future extensions could add
 properties such as difficulty, environment, or prerequisites.
 """
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QComboBox, QSpinBox, QLabel  # NEW imports
-from qdnodesocket import QD_NodeSocket, SocketDirection  # type: ignore
+from qdnodesocket import QD_NodeSocket, SocketDirection, SocketType  # UPDATED import
 from nodes.qdopnode import QD_OpNode
 
 __all__ = ["Level"]
@@ -16,9 +16,9 @@ class Level(QD_OpNode):
     def __init__(self, title: str = "等级", parent=None):
         # Initialize with explicit empty socket lists so base validation passes
         super().__init__(title=title, parent=parent, in_sockets=[], out_sockets=[])
-        # One input, one output
-        self._in_sockets = [QD_NodeSocket(SocketDirection.IN, parent=self)]
-        self._out_sockets = [QD_NodeSocket(SocketDirection.OUT, parent=self)]
+        # One input (numeric level value), one output (boolean test result)
+        self._in_sockets = [QD_NodeSocket(SocketDirection.IN, parent=self, sock_type=SocketType.DECIMAL)]
+        self._out_sockets = [QD_NodeSocket(SocketDirection.OUT, parent=self, sock_type=SocketType.BOOL)]
         # Install embedded UI (combo | non-negative number | label '级')
         self._init_embedded_ui()
         # Layout sockets AFTER embedding (node may have resized)

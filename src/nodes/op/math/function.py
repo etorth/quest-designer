@@ -11,7 +11,7 @@ Differences vs Calc:
   sinh, cosh, tanh, exp, log, log10, sqrt, abs, floor, ceil, round.
 """
 from PySide6.QtWidgets import QComboBox
-from qdnodesocket import QD_NodeSocket, SocketDirection  # type: ignore
+from qdnodesocket import QD_NodeSocket, SocketDirection, SocketType  # UPDATED import
 from ...qdopnode import QD_OpNode  # CHANGED to relative import
 
 __all__ = ["Function"]
@@ -22,8 +22,8 @@ class Function(QD_OpNode):
         # Initialize with empty socket lists; we construct manually
         super().__init__(title=title, parent=parent, in_sockets=[], out_sockets=[])
         # Exactly one input and one output
-        self._in_sockets = [QD_NodeSocket(SocketDirection.IN, parent=self)]
-        self._out_sockets = [QD_NodeSocket(SocketDirection.OUT, parent=self)]
+        self._in_sockets = [QD_NodeSocket(SocketDirection.IN, parent=self, sock_type=SocketType.DECIMAL)]
+        self._out_sockets = [QD_NodeSocket(SocketDirection.OUT, parent=self, sock_type=SocketType.DECIMAL)]
         # Embedded combo for function selection
         self._func_combo = QComboBox()
         self._functions = [

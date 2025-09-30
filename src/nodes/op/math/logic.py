@@ -9,7 +9,7 @@ A simple logical operation node placeholder. It provides:
 Future extensions could adjust input arity dynamically when selecting 非.
 """
 from PySide6.QtWidgets import QComboBox
-from qdnodesocket import QD_NodeSocket, SocketDirection  # type: ignore
+from qdnodesocket import QD_NodeSocket, SocketDirection, SocketType  # UPDATED import
 from nodes.qdopnode import QD_OpNode
 
 __all__ = ["Logic"]
@@ -23,9 +23,9 @@ class Logic(QD_OpNode):
             in_count = self.MIN_INPUTS
         super().__init__(title=title, parent=parent, in_sockets=[], out_sockets=[])
         # Inputs
-        self._in_sockets = [QD_NodeSocket(SocketDirection.IN, parent=self) for _ in range(in_count)]
+        self._in_sockets = [QD_NodeSocket(SocketDirection.IN, parent=self, sock_type=SocketType.BOOL) for _ in range(in_count)]
         # Output
-        self._out_sockets = [QD_NodeSocket(SocketDirection.OUT, parent=self)]
+        self._out_sockets = [QD_NodeSocket(SocketDirection.OUT, parent=self, sock_type=SocketType.BOOL)]
         # Embedded logical operation selector combo
         self._op_combo = QComboBox()
         self._operations = ["与", "或", "非"]
@@ -58,4 +58,3 @@ class Logic(QD_OpNode):
                 sock.setPos(0, gap * idx)
         if self._out_sockets:
             self._out_sockets[0].setPos(w, h / 2)
-

@@ -10,7 +10,7 @@ Future enhancements:
 - Auto inversion / swapping utilities
 """
 from PySide6.QtWidgets import QComboBox
-from qdnodesocket import QD_NodeSocket, SocketDirection  # type: ignore
+from qdnodesocket import QD_NodeSocket, SocketDirection, SocketType  # UPDATED import
 from nodes.qdopnode import QD_OpNode
 
 __all__ = ["Compare"]
@@ -23,10 +23,10 @@ class Compare(QD_OpNode):
         if in_count < self.MIN_INPUTS:
             in_count = self.MIN_INPUTS
         super().__init__(title=title, parent=parent, in_sockets=[], out_sockets=[])
-        # Inputs (two or more)
-        self._in_sockets = [QD_NodeSocket(SocketDirection.IN, parent=self) for _ in range(in_count)]
-        # Single output
-        self._out_sockets = [QD_NodeSocket(SocketDirection.OUT, parent=self)]
+        # Inputs (two or more) numeric
+        self._in_sockets = [QD_NodeSocket(SocketDirection.IN, parent=self, sock_type=SocketType.DECIMAL) for _ in range(in_count)]
+        # Single output boolean result
+        self._out_sockets = [QD_NodeSocket(SocketDirection.OUT, parent=self, sock_type=SocketType.BOOL)]
         # Embedded comparison operation selector
         self._op_combo = QComboBox()
         self._operations = ["大于", "小于", "等于", "不大于", "不小于", "不等于"]
@@ -59,4 +59,3 @@ class Compare(QD_OpNode):
                 sock.setPos(0, gap * idx)
         if self._out_sockets:
             self._out_sockets[0].setPos(w, h / 2)
-

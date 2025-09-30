@@ -11,7 +11,7 @@ folding. For now it is purely a structural/demo node.
 """
 
 from PySide6.QtWidgets import QComboBox  # NEW import for embedded widget
-from qdnodesocket import QD_NodeSocket, SocketDirection  # type: ignore
+from qdnodesocket import QD_NodeSocket, SocketDirection, SocketType  # STANDARD import
 from nodes.qdopnode import QD_OpNode  # base op node
 
 __all__ = ["Calc"]
@@ -26,9 +26,9 @@ class Calc(QD_OpNode):
         # Initialize base with empty socket lists; we'll add sockets manually
         super().__init__(title=title, parent=parent, in_sockets=[], out_sockets=[])
         # Create input sockets
-        self._in_sockets = [QD_NodeSocket(SocketDirection.IN, parent=self) for _ in range(in_count)]
+        self._in_sockets = [QD_NodeSocket(SocketDirection.IN, parent=self, sock_type=SocketType.DECIMAL) for _ in range(in_count)]
         # Single output socket
-        self._out_sockets = [QD_NodeSocket(SocketDirection.OUT, parent=self)]
+        self._out_sockets = [QD_NodeSocket(SocketDirection.OUT, parent=self, sock_type=SocketType.DECIMAL)]
         # Embedded operation selector combo (Chinese labels: 加, 减, 乘, 除)
         self._op_combo = QComboBox()
         self._operations = ["加", "减", "乘", "除"]

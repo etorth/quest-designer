@@ -9,7 +9,7 @@ Inherits from QD_StateNode (state-layer semantic base).
 """
 
 from ...qdstatenode import QD_StateNode  # changed base import
-from qdnodesocket import QD_NodeSocket, SocketDirection  # type: ignore
+from qdnodesocket import QD_NodeSocket, SocketDirection, SocketType  # UPDATED import
 
 __all__ = ["Enter"]
 
@@ -17,7 +17,7 @@ __all__ = ["Enter"]
 class Enter(QD_StateNode):  # changed base class
     def __init__(self, title: str = "Enter", parent=None):
         super().__init__(title=title, parent=parent, in_sockets=[])  # out_sockets created below
-        out_socket = QD_NodeSocket(SocketDirection.OUT, parent=self)
+        out_socket = QD_NodeSocket(SocketDirection.OUT, parent=self, sock_type=SocketType.BOOL)
         self._out_sockets = [out_socket]
         self._layout_sockets()
 

@@ -8,7 +8,8 @@ quest/state-machine states. Future extensions may include:
 - Common styling overrides specific to state nodes
 """
 
-from qdnode import QD_Node
+from qdnode import QD_Node  # REVERT to top-level import
+from qdnodesocket import SocketType, SocketDirection  # REVERT to top-level import
 
 __all__ = ["QD_StateNode"]
 
@@ -21,6 +22,10 @@ class QD_StateNode(QD_Node):
         self._state_index = QD_StateNode._COUNTER
         QD_StateNode._COUNTER += 1
         super().__init__(title=title, **kwargs)
+
+    # Category default: state graph flow typically boolean semantics
+    def default_socket_type(self, direction: SocketDirection):  # noqa: D401
+        return SocketType.BOOL
 
     def state_index(self) -> int:  # noqa: D401
         """Return the unique creation index of this state node (starting at 0)."""

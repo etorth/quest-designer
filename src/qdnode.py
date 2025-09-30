@@ -18,7 +18,7 @@ from PySide6.QtWidgets import QGraphicsObject, QGraphicsItem, QGraphicsProxyWidg
 from PySide6.QtGui import QPainter, QPen, QBrush, QColor, QFont
 from PySide6.QtCore import QRectF, Qt
 from typing import List, Optional
-from qdnodesocket import QD_NodeSocket, SocketDirection  # NEW import
+from qdnodesocket import QD_NodeSocket, SocketDirection, SocketType  # REVERT to absolute import for script usability
 
 # Palette constants (centralize for easier theme tweaks)
 _NODE_BASE_COLOR = QColor("#272b30")      # Darker than previous #3a3f44
@@ -70,6 +70,16 @@ class QD_Node(QGraphicsObject):
         self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, True)
         self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemSendsGeometryChanges, True)
         self.setAcceptHoverEvents(True)
+
+    # --- Socket type policy (NEW) ---------------------------------------
+    def default_socket_type(self, direction: SocketDirection):  # noqa: D401
+        """Return default SocketType for this node and direction.
+
+        Base QD_Node defaults to DECIMAL for all directions; subclasses may
+        override (e.g., state nodes returning BOOL). Specific node classes
+        that mix types should construct sockets explicitly with types.
+        """
+        return SocketType.DECIMAL
 
     # --- Required QGraphicsItem interface ---
     def boundingRect(self) -> QRectF:  # noqa: D401
@@ -193,19 +203,23 @@ class QD_Node(QGraphicsObject):
     def output_sockets(self) -> List[QD_NodeSocket]:  # noqa: D401
         return self._out_sockets if self._out_sockets is not None else []
 
-    def add_input_socket(self, socket: QD_NodeSocket | None = None) -> QD_NodeSocket:
+    def add_input_socket(self, socket: QD_NodeSocket | None = None, *, sock_type: SocketType | None = None) -> QD_NodeSocket:
         if self._in_sockets is None:
             self._in_sockets = []
-        sock = socket or QD_NodeSocket(SocketDirection.IN, parent=self)
-        self._in_sockets.append(sock)
-        return sock
+        if socket is None:
+            stype: SocketType = sock_type if sock_type is not None else self.default_socket_type(SocketDirection.IN)
+            socket = QD_NodeSocket(SocketDirection.IN, self, stype)
+        self._in_sockets.append(socket)
+        return socket
 
-    def add_output_socket(self, socket: QD_NodeSocket | None = None) -> QD_NodeSocket:
+    def add_output_socket(self, socket: QD_NodeSocket | None = None, *, sock_type: SocketType | None = None) -> QD_NodeSocket:
         if self._out_sockets is None:
             self._out_sockets = []
-        sock = socket or QD_NodeSocket(SocketDirection.OUT, parent=self)
-        self._out_sockets.append(sock)
-        return sock
+        if socket is None:
+            stype: SocketType = sock_type if sock_type is not None else self.default_socket_type(SocketDirection.OUT)
+            socket = QD_NodeSocket(SocketDirection.OUT, self, stype)
+        self._out_sockets.append(socket)
+        return socket
 
     def itemChange(self, change, value):  # noqa: D401
         try:

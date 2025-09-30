@@ -14,6 +14,7 @@ Design goals:
 - (NEW) Track connected edges (single-connection policy currently enforced in scene)
 - (NEW) Highlight state for potential targets while connecting
 - (UPDATED) Render as a directional half-circle (IN = left half, OUT = right half)
+- (NEW) Each socket now has a mandatory data type (DECIMAL, INTEGER, STRING, BOOL)
 """
 from __future__ import annotations
 
@@ -21,17 +22,24 @@ from enum import Enum, auto
 from typing import Optional, List, TYPE_CHECKING
 from PySide6.QtWidgets import QGraphicsObject, QGraphicsItem
 from PySide6.QtGui import QPainter, QPen, QBrush, QColor
-from PySide6.QtCore import QRectF, Qt, QPointF  # added QPointF
+from PySide6.QtCore import QRectF
 
 if TYPE_CHECKING:  # avoid runtime import cycle
     from qdedge import QD_Edge
 
-__all__ = ["QD_NodeSocket", "SocketDirection"]
+__all__ = ["QD_NodeSocket", "SocketDirection", "SocketType"]
 
 
 class SocketDirection(Enum):
     IN = auto()
     OUT = auto()
+
+
+class SocketType(Enum):  # Data type classification for sockets
+    DECIMAL = auto()
+    INTEGER = auto()
+    STRING = auto()
+    BOOL = auto()
 
 
 # Palette (kept subtle to not overpower node visuals)
@@ -46,11 +54,12 @@ _SOCKET_BORDER_HIGHLIGHT = QColor("#ffd866")
 class QD_NodeSocket(QGraphicsObject):
     RADIUS = 6.0
 
-    def __init__(self, direction: SocketDirection, parent: Optional[QGraphicsItem]):
+    def __init__(self, direction: SocketDirection, parent: Optional[QGraphicsObject], sock_type: SocketType = SocketType.DECIMAL):
         if parent is None:
             raise ValueError("QD_NodeSocket requires a non-null parent QGraphicsItem at creation")
         super().__init__(parent)
         self._direction = direction  # immutable after construction
+        self._type = sock_type       # immutable data type classification
         self._hover = False
         self._highlight = False
         self._edges: List[QD_Edge] = []  # connections
@@ -65,6 +74,9 @@ class QD_NodeSocket(QGraphicsObject):
     # --- API --------------------------------------------------------------
     def direction(self) -> SocketDirection:
         return self._direction
+
+    def socket_type(self) -> SocketType:
+        return self._type
 
     def add_edge(self, edge: 'QD_Edge'):
         if edge not in self._edges:
@@ -157,3 +169,5 @@ class QD_NodeSocket(QGraphicsObject):
     def radius(self) -> float:  # noqa: D401
         return self.RADIUS
 
+    def __repr__(self) -> str:  # noqa: D401
+        return f"<QD_NodeSocket dir={self._direction.name} type={self._type.name} occupied={self.is_occupied()}>"

@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 import sys
 from PySide6.QtWidgets import QApplication
-from qdmainwindow import QD_MainWindow
+from qdmainwindow import QD_MainWindow  # reverted to top-level import
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-
     mainWindow = QD_MainWindow()
     mainWindow.show()
 

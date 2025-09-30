@@ -6,7 +6,7 @@ Represents a condition check or operation that determines whether the player
 placeholder node with one input and one output socket. Future enhancements
 could add an embedded UI (e.g., item selector combo, quantity spin box).
 """
-from qdnodesocket import QD_NodeSocket, SocketDirection  # type: ignore
+from qdnodesocket import QD_NodeSocket, SocketDirection, SocketType  # UPDATED import
 from nodes.qdopnode import QD_OpNode
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QComboBox, QSpinBox, QLabel  # NEW imports
 
@@ -17,9 +17,9 @@ class HasItem(QD_OpNode):
     def __init__(self, title: str = "物品", parent=None):
         # Initialize base with explicit empty socket lists so we can construct manually
         super().__init__(title=title, parent=parent, in_sockets=[], out_sockets=[])
-        # One input (flow comes in) and one output (flow continues if condition passes)
-        self._in_sockets = [QD_NodeSocket(SocketDirection.IN, parent=self)]
-        self._out_sockets = [QD_NodeSocket(SocketDirection.OUT, parent=self)]
+        # One input (flow / numeric chain) and one output (boolean condition)
+        self._in_sockets = [QD_NodeSocket(SocketDirection.IN, parent=self, sock_type=SocketType.DECIMAL)]
+        self._out_sockets = [QD_NodeSocket(SocketDirection.OUT, parent=self, sock_type=SocketType.BOOL)]
         # Build embedded UI phrase: 拥有 <relation> <count> 个 <item>
         self._init_embedded_ui()
         # Layout sockets after potential resize
