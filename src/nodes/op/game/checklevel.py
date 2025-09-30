@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Level operation node.
+"""CheckLeve operation node.
 
 Represents a level condition / query node producing a boolean result.
 This node now has:
@@ -16,10 +16,10 @@ SocketType = _qdns.SocketType
 _qdop = import_module('nodes.qdopnode')
 QD_OpNode = _qdop.QD_OpNode
 
-__all__ = ["Level"]
+__all__ = ["CheckLeve"]
 
 
-class Level(QD_OpNode):
+class CheckLeve(QD_OpNode):
     def __init__(self, title: str = "等级", parent=None):
         # Initialize with explicit empty socket lists; only OUT socket created
         super().__init__(title=title, parent=parent, in_sockets=[], out_sockets=[])
