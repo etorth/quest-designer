@@ -133,7 +133,7 @@ class QD_NodeSocket(QGraphicsObject):
         painter.setPen(QColor("#000000"))
         font = painter.font()
         font.setBold(False)
-        font.setPointSizeF(max(6.0, self.RADIUS * 1.6))
+        font.setPointSizeF(max(6.0, self.RADIUS * 1.5))
         painter.setFont(font)
         painter.drawText(rect, int(Qt.AlignmentFlag.AlignCenter), label)
 
