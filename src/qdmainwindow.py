@@ -6,13 +6,13 @@ from PySide6.QtGui import QAction
 from qdmdiwindow import QD_MdiWindow
 from qdstatewindow import QD_StateWindow
 from PySide6.QtCore import Qt
-from qdgfxview import QD_GfxView  # NEW import for isinstance check
+from qdgfxview import QD_GfxView
 
 
-class QD_MainWindow(QMainWindow):  # Note: class name as requested
+class QD_MainWindow(QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self._mdi_seq = 1  # sequence counter for new subwindows
+        self._mdi_seq = 1
         self._zoom_label: QLabel | None = None
         self._configure_window()
         self._create_menubar()
@@ -25,7 +25,6 @@ class QD_MainWindow(QMainWindow):  # Note: class name as requested
         self.setMinimumSize(800, 600)
 
     def _create_mdi_area(self):
-        # Central MDI area starts empty
         self.mdi_area = QMdiArea()
         self.mdi_area.setViewMode(QMdiArea.ViewMode.TabbedView)
         self.setCentralWidget(self.mdi_area)
@@ -115,7 +114,7 @@ class QD_MainWindow(QMainWindow):  # Note: class name as requested
         try:
             view = mdi.graphics_view()
             if isinstance(view, QD_GfxView):
-                view.zoomChanged.connect(lambda _s, wref=mdi: self._update_zoom_label_from_mdi(wref))
+                view.zoom_changed.connect(lambda _s, wref=mdi: self._update_zoom_label_from_mdi(wref))
         except Exception:  # pragma: no cover - defensive
             pass
         mdi.show()

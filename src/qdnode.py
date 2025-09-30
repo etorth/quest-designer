@@ -1,24 +1,10 @@
 # -*- coding: utf-8 -*-
-"""Fundamental quest designer node type.
-
-QD_Node is the base graphics item for all specialized quest nodes.
-It provides:
-- Rounded rectangle body
-- Title text
-- Hover + selection visual feedback
-- Basic movable/selectable flags
-- (NEW) Lists of input/output sockets (may be empty or None)
-- (NEW) Validation of provided socket direction lists
-- (NEW) Edge path refresh when node position changes
-- (NEW) Optional embedded QWidget content via QGraphicsProxyWidget
-
-Future extensions can add sockets, I/O ports, custom data, context menus, etc.
-"""
-from PySide6.QtWidgets import QGraphicsObject, QGraphicsItem, QGraphicsProxyWidget, QWidget  # UPDATED import
+"""Fundamental quest designer node type (refactored to snake_case APIs)."""
+from PySide6.QtWidgets import QGraphicsObject, QGraphicsItem, QGraphicsProxyWidget, QWidget
 from PySide6.QtGui import QPainter, QPen, QBrush, QColor, QFont
 from PySide6.QtCore import QRectF, Qt
 from typing import List, Optional
-from qdnodesocket import QD_NodeSocket, SocketDirection, SocketType  # REVERT to absolute import for script usability
+from qdnodesocket import QD_NodeSocket, SocketDirection, SocketType
 
 # Palette constants (centralize for easier theme tweaks)
 _NODE_BASE_COLOR = QColor("#272b30")      # Darker than previous #3a3f44
@@ -71,8 +57,8 @@ class QD_Node(QGraphicsObject):
         self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemSendsGeometryChanges, True)
         self.setAcceptHoverEvents(True)
 
-    # --- Socket type policy (NEW) ---------------------------------------
-    def defaultSocketType(self, direction: SocketDirection):  # noqa: D401 camelCase
+    # --- Socket type policy ----------------------------------------------
+    def default_socket_type(self, direction: SocketDirection):
         """Return default SocketType for this node and direction.
 
         Base QD_Node defaults to DECIMAL for all directions; subclasses may
@@ -81,16 +67,12 @@ class QD_Node(QGraphicsObject):
         """
         return SocketType.DECIMAL
 
-    # Deprecated alias
-    def default_socket_type(self, direction: SocketDirection):  # noqa: D401
-        return self.defaultSocketType(direction)
-
-    # --- Required QGraphicsItem interface ---
-    def boundingRect(self) -> QRectF:  # noqa: D401
+    # --- QGraphicsItem interface -----------------------------------------
+    def boundingRect(self) -> QRectF:  # Qt override keep camelCase
         # Slight margin for pen width
         return QRectF(0, 0, self._w, self._h).adjusted(-1, -1, 1, 1)
 
-    def paint(self, painter: QPainter, option, widget=None):  # noqa: D401
+    def paint(self, painter: QPainter, option, widget=None):  # Qt override
         rect = QRectF(0, 0, self._w, self._h)
 
         # Base colors (updated palette logic)
@@ -132,30 +114,30 @@ class QD_Node(QGraphicsObject):
         painter.drawText(QRectF(8, 4, self._w - 16, _TITLE_BAR_HEIGHT - 8),
                          Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter, self._title)
 
-    # --- Hover events ---
-    def hoverEnterEvent(self, event):  # noqa: D401
+    # --- Hover events -----------------------------------------------------
+    def hoverEnterEvent(self, event):  # Qt override
         self._hover = True
         self.update()
         super().hoverEnterEvent(event)
 
-    def hoverLeaveEvent(self, event):  # noqa: D401
+    def hoverLeaveEvent(self, event):  # Qt override
         self._hover = False
         self.update()
         super().hoverLeaveEvent(event)
 
-    # --- Convenience ---
-    def setTitle(self, title: str):  # noqa: D401
+    # --- Convenience ------------------------------------------------------
+    def set_title(self, title: str):  # noqa: D401
         self._title = title
         self.update()
 
-    def title(self) -> str:  # noqa: D401
+    def title(self) -> str:  # keep for external display
         return self._title
 
     def size(self):  # noqa: D401
         return self._w, self._h
 
-    # --- Embedded widget support (NEW) ----------------------------------
-    def setEmbeddedWidget(self, widget: QWidget | None, auto_resize: bool = True, padding: int = _CONTENT_PADDING):  # noqa: D401
+    # --- Embedded widget support -----------------------------------------
+    def set_embedded_widget(self, widget: QWidget | None, auto_resize: bool = True, padding: int = _CONTENT_PADDING):  # noqa: D401
         """Embed (or replace) a QWidget inside the node.
 
         The widget is wrapped in a QGraphicsProxyWidget and positioned inside
@@ -197,27 +179,21 @@ class QD_Node(QGraphicsObject):
         self.update()
         return widget
 
-    def embeddedWidget(self) -> QWidget | None:  # noqa: D401
+    def embedded_widget(self) -> QWidget | None:  # noqa: D401
         return self._embedded_widget
 
-    # --- Socket accessors (NEW) ---
-    def inputSockets(self) -> List[QD_NodeSocket]:  # camelCase
+    # --- Socket accessors -------------------------------------------------
+    def input_sockets(self) -> List[QD_NodeSocket]:  # camelCase
         return self._in_sockets if self._in_sockets is not None else []
 
-    def input_sockets(self) -> List[QD_NodeSocket]:  # deprecated alias
-        return self.inputSockets()
-
-    def outputSockets(self) -> List[QD_NodeSocket]:  # camelCase
+    def output_sockets(self) -> List[QD_NodeSocket]:  # camelCase
         return self._out_sockets if self._out_sockets is not None else []
 
-    def output_sockets(self) -> List[QD_NodeSocket]:  # deprecated alias
-        return self.outputSockets()
-
-    def addInputSocket(self, socket: QD_NodeSocket | None = None, *, sock_type: SocketType | None = None) -> QD_NodeSocket:
+    def add_input_socket(self, socket: QD_NodeSocket | None = None, *, sock_type: SocketType | None = None) -> QD_NodeSocket:
         if self._in_sockets is None:
             self._in_sockets = []
         if socket is None:
-            stype: SocketType = sock_type if sock_type is not None else self.defaultSocketType(SocketDirection.IN)
+            stype: SocketType = sock_type if sock_type is not None else self.default_socket_type(SocketDirection.IN)
             socket = QD_NodeSocket(SocketDirection.IN, self, stype)
         try:
             socket.setZValue(-0.5)
@@ -226,14 +202,11 @@ class QD_Node(QGraphicsObject):
         self._in_sockets.append(socket)
         return socket
 
-    def add_input_socket(self, socket: QD_NodeSocket | None = None, *, sock_type: SocketType | None = None):  # deprecated alias
-        return self.addInputSocket(socket, sock_type=sock_type)
-
-    def addOutputSocket(self, socket: QD_NodeSocket | None = None, *, sock_type: SocketType | None = None) -> QD_NodeSocket:
+    def add_output_socket(self, socket: QD_NodeSocket | None = None, *, sock_type: SocketType | None = None) -> QD_NodeSocket:
         if self._out_sockets is None:
             self._out_sockets = []
         if socket is None:
-            stype: SocketType = sock_type if sock_type is not None else self.defaultSocketType(SocketDirection.OUT)
+            stype: SocketType = sock_type if sock_type is not None else self.default_socket_type(SocketDirection.OUT)
             socket = QD_NodeSocket(SocketDirection.OUT, self, stype)
         try:
             socket.setZValue(-0.5)
@@ -242,10 +215,7 @@ class QD_Node(QGraphicsObject):
         self._out_sockets.append(socket)
         return socket
 
-    def add_output_socket(self, socket: QD_NodeSocket | None = None, *, sock_type: SocketType | None = None):  # deprecated alias
-        return self.addOutputSocket(socket, sock_type=sock_type)
-
-    def itemChange(self, change, value):  # noqa: D401
+    def itemChange(self, change, value):  # Qt override keep camelCase
         try:
             if change == QGraphicsItem.GraphicsItemChange.ItemPositionHasChanged:
                 # Update all connected edge paths since socket positions shifted

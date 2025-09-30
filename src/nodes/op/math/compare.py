@@ -1,17 +1,14 @@
 # -*- coding: utf-8 -*-
-"""Compare operation node.
-
-Provides a comparison operation selection with at least two input sockets and
-one output socket. Operations: 大于, 小于, 等于, 不大于, 不小于, 不等于.
-
-Future enhancements:
-- Dynamic type hints for inputs
-- Constant folding when both inputs are literals
-- Auto inversion / swapping utilities
-"""
+"""Compare operation node (refactored to snake_case)."""
+from importlib import import_module
 from PySide6.QtWidgets import QComboBox
-from qdnodesocket import QD_NodeSocket, SocketDirection, SocketType  # UPDATED import
-from nodes.qdopnode import QD_OpNode
+
+_qdns = import_module('qdnodesocket')
+QD_NodeSocket = _qdns.QD_NodeSocket
+SocketDirection = _qdns.SocketDirection
+SocketType = _qdns.SocketType
+_qdop = import_module('nodes.qdopnode')
+QD_OpNode = _qdop.QD_OpNode
 
 __all__ = ["Compare"]
 
@@ -33,7 +30,7 @@ class Compare(QD_OpNode):
         self._op_combo.addItems(self._operations)
         self._current_op = self._op_combo.currentText()
         self._op_combo.currentTextChanged.connect(self._on_op_changed)
-        self.setEmbeddedWidget(self._op_combo, auto_resize=True)
+        self.set_embedded_widget(self._op_combo, auto_resize=True)
         self._layout_sockets()
 
     def _on_op_changed(self, text: str):  # noqa: D401
@@ -43,7 +40,7 @@ class Compare(QD_OpNode):
     def operation(self) -> str:  # noqa: D401
         return self._current_op
 
-    def setOperation(self, op_label: str):  # noqa: D401
+    def set_operation(self, op_label: str):  # noqa: D401
         if op_label in self._operations:
             idx = self._operations.index(op_label)
             if idx != self._op_combo.currentIndex():

@@ -5,23 +5,21 @@ QD_GfxScene centralizes custom rendering / behaviors (grid, future snapping,
 context menus, selection helpers, etc.). QD_MdiWindow uses this instead of a
 plain QGraphicsScene so later enhancements remain localized here.
 """
-from typing import Optional, Callable, Dict, TYPE_CHECKING, cast  # added cast
-from PySide6.QtWidgets import QGraphicsScene, QApplication, QWidget  # Added QWidget
+from typing import Optional, Callable, Dict, TYPE_CHECKING, cast
+from PySide6.QtWidgets import QGraphicsScene
 from PySide6.QtGui import QPainter, QPen, QColor, QTransform
-from PySide6.QtCore import QRectF, QPointF, Qt  # Added Qt
+from PySide6.QtCore import QRectF, QPointF, Qt
 
-# --- New imports for edge-connecting feature ---
-from qdnodesocket import QD_NodeSocket, SocketDirection, SocketType  # UPDATED import to include SocketType
+from qdnodesocket import QD_NodeSocket, SocketType
 from qdedge import QD_Edge  # type: ignore
-from qdnode import QD_Node  # runtime import for deletion isinstance checks
+from qdnode import QD_Node
 
-if TYPE_CHECKING:  # type-only imports to satisfy analyzer without runtime cycles
-    from qdnode import QD_Node
+if TYPE_CHECKING:
+    from qdnode import QD_Node as _QD_Node_Type
 
 
 class QD_GfxScene(QGraphicsScene):
     DEFAULT_RECT = (-2000, -2000, 4000, 4000)
-    # --- Color palette (tweakable) ---
     _BG_COLOR = QColor(0x37, 0x39, 0x3f)
     _GRID_MINOR = QColor(0x43, 0x46, 0x4c)
     _GRID_MAJOR = QColor(0x54, 0x59, 0x5f)
@@ -35,24 +33,19 @@ class QD_GfxScene(QGraphicsScene):
         self._grid_step = grid_step
         self.setItemIndexMethod(QGraphicsScene.ItemIndexMethod.NoIndex)
         self._node_factories: Dict[str, Callable[[], 'QD_Node']] = {}
-        # NOTE: default node factories & concrete factory helpers moved to specialized subclasses.
-        # --- Edge connecting state ---
         self._connecting_edge: Optional[QD_Edge] = None
-        self._connecting_socket: Optional[QD_NodeSocket] = None  # start socket (IN or OUT)
-        self._hover_target_socket: Optional[QD_NodeSocket] = None  # currently highlighted potential target
+        self._connecting_socket: Optional[QD_NodeSocket] = None
+        self._hover_target_socket: Optional[QD_NodeSocket] = None
 
-    # --- Palette configuration -------------------------------------------
-    def set_palette(self, bg: QColor, minor: QColor, major: QColor):  # noqa: D401
-        """Override the scene/grid colors on a per-instance basis."""
+    def set_palette(self, bg: QColor, minor: QColor, major: QColor):
         self._BG_COLOR = bg
         self._GRID_MINOR = minor
         self._GRID_MAJOR = major
 
-    # --- Node factory management -----------------------------------------
-    def register_node_type(self, label: str, factory: Callable[[], 'QD_Node']):  # noqa: D401
+    def register_node_type(self, label: str, factory: Callable[[], 'QD_Node']):
         self._node_factories[label] = factory
 
-    def node_factory_labels(self):  # noqa: D401
+    def node_factory_labels(self):
         return self._node_factories.keys()
 
     def _spawn_node(self, label: str, scene_pos: QPointF):
@@ -74,7 +67,6 @@ class QD_GfxScene(QGraphicsScene):
         node.setSelected(True)
         return node
 
-    # --- Configuration API -------------------------------------------------
     def set_grid_step(self, step: int):
         self._grid_step = max(5, step)
         self.update()
@@ -82,8 +74,7 @@ class QD_GfxScene(QGraphicsScene):
     def grid_step(self) -> int:
         return self._grid_step
 
-    # --- Drawing ------------------------------------------------------------
-    def drawBackground(self, painter: QPainter, rect: QRectF):  # noqa: N802
+    def drawBackground(self, painter: QPainter, rect: QRectF):  # noqa: N802 Qt override
         painter.fillRect(rect, self._BG_COLOR)
         step = self._grid_step
         if step <= 0:
@@ -113,40 +104,27 @@ class QD_GfxScene(QGraphicsScene):
             painter.drawLine(left_i, int(y), right_i, int(y))
             y += step
 
-    # --- Context menu -----------------------------------------------------
-    # (Handled in subclasses.)
-
-    # --- Edge connecting interaction (enhanced) ---------------------------
     def _clear_hover_target(self):
         if self._hover_target_socket is not None:
             try:
-                self._hover_target_socket.setHighlight(False)
-            except Exception:  # pragma: no cover
+                self._hover_target_socket.set_highlight(False)
+            except Exception:
                 pass
         self._hover_target_socket = None
 
     @staticmethod
     def _sockets_compatible(a: QD_NodeSocket, b: QD_NodeSocket) -> bool:
-        """Return True if sockets can be connected.
-
-        Rules:
-        - Must be different objects
-        - Must be opposite directions (IN vs OUT)
-        - Disallow INTEGER <-> STRING connections (both directions)
-          (Future: extend with coercion / implicit cast rules.)
-        """
         if a is b:
             return False
         if a.direction() == b.direction():
             return False
-        t1 = a.socketType()
-        t2 = b.socketType()
-        # Block INTEGER <-> STRING in either order
+        t1 = a.socket_type()
+        t2 = b.socket_type()
         if ({t1, t2} == {SocketType.INTEGER, SocketType.STRING}):
             return False
         return True
 
-    def mousePressEvent(self, event):  # noqa: D401
+    def mousePressEvent(self, event):  # Qt override
         if event.button() == Qt.MouseButton.RightButton:
             if self._connecting_edge is not None:
                 self._cancel_connection()
@@ -161,14 +139,14 @@ class QD_GfxScene(QGraphicsScene):
                         event.accept()
                         return
                     if self._sockets_compatible(self._connecting_socket, sock_item):
-                        self._connecting_edge.finalizeWith(sock_item)
-                        self._connecting_edge.updatePath()
+                        self._connecting_edge.finalize_with(sock_item)
+                        self._connecting_edge.update_path()
                         try:
-                            self._connecting_socket.setHighlight(False)
+                            self._connecting_socket.set_highlight(False)
                         except Exception:
                             pass
                         try:
-                            sock_item.setHighlight(False)
+                            sock_item.set_highlight(False)
                         except Exception:
                             pass
                         self._clear_hover_target()
@@ -177,7 +155,7 @@ class QD_GfxScene(QGraphicsScene):
                         event.accept()
                         return
                 if self._connecting_edge is not None:
-                    self._connecting_edge.updateDynamicEnd(event.scenePos())
+                    self._connecting_edge.update_dynamic_end(event.scenePos())
                     event.accept()
                     return
             if isinstance(item, QD_NodeSocket) and self._connecting_edge is None:
@@ -185,21 +163,21 @@ class QD_GfxScene(QGraphicsScene):
                 edge = QD_Edge(begin=self._connecting_socket)
                 self._connecting_edge = edge
                 self.addItem(edge)
-                edge.updateDynamicEnd(event.scenePos())
-                self._connecting_socket.setHighlight(True)
+                edge.update_dynamic_end(event.scenePos())
+                self._connecting_socket.set_highlight(True)
                 event.accept()
                 return
         super().mousePressEvent(event)
 
-    def mouseMoveEvent(self, event):  # noqa: D401
+    def mouseMoveEvent(self, event):  # Qt override
         if self._connecting_edge is not None and self._connecting_socket is not None:
-            self._connecting_edge.updateDynamicEnd(event.scenePos())
+            self._connecting_edge.update_dynamic_end(event.scenePos())
             item = self.itemAt(event.scenePos(), QTransform())
             candidate = item if isinstance(item, QD_NodeSocket) else None
             if candidate and self._sockets_compatible(self._connecting_socket, candidate):
                 if candidate is not self._hover_target_socket:
                     self._clear_hover_target()
-                    candidate.setHighlight(True)
+                    candidate.set_highlight(True)
                     self._hover_target_socket = candidate
             else:
                 if candidate is None or candidate is not self._hover_target_socket:
@@ -208,7 +186,7 @@ class QD_GfxScene(QGraphicsScene):
             return
         super().mouseMoveEvent(event)
 
-    def mouseReleaseEvent(self, event):  # noqa: D401
+    def mouseReleaseEvent(self, event):  # Qt override
         super().mouseReleaseEvent(event)
 
     def _delete_selected_items(self):
@@ -224,10 +202,10 @@ class QD_GfxScene(QGraphicsScene):
                 nodes_to_delete.append(item)
         for node in nodes_to_delete:
             try:
-                for sock in node.inputSockets():
+                for sock in node.input_sockets():
                     for e in sock.edges():
                         edges_to_delete.add(e)
-                for sock in node.outputSockets():
+                for sock in node.output_sockets():
                     for e in sock.edges():
                         edges_to_delete.add(e)
             except Exception:
@@ -254,7 +232,7 @@ class QD_GfxScene(QGraphicsScene):
             except Exception:
                 pass
 
-    def keyPressEvent(self, event):  # noqa: D401
+    def keyPressEvent(self, event):  # Qt override
         key = event.key()
         try:
             if key == Qt.Key.Key_Escape and self._connecting_edge is not None:
@@ -273,11 +251,11 @@ class QD_GfxScene(QGraphicsScene):
         if self._connecting_edge is not None:
             try:
                 self.removeItem(self._connecting_edge)
-            except Exception:  # pragma: no cover
+            except Exception:
                 pass
         if self._connecting_socket is not None:
             try:
-                self._connecting_socket.setHighlight(False)
+                self._connecting_socket.set_highlight(False)
             except Exception:
                 pass
         self._clear_hover_target()

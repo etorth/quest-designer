@@ -21,7 +21,7 @@ from PySide6.QtCore import Qt, QRectF, Signal, QPoint
 
 class QD_GfxView(QGraphicsView):
     # Emitted with the new scale factor (1.0 == 100%)
-    zoomChanged = Signal(float)
+    zoom_changed = Signal(float)
 
     def __init__(self, scene, parent=None):
         super().__init__(scene, parent)
@@ -129,7 +129,7 @@ class QD_GfxView(QGraphicsView):
             self.scale(factor, factor)
 
     def _emit_zoom_changed(self):
-        self.zoomChanged.emit(self.transform().m11())
+        self.zoom_changed.emit(self.transform().m11())
 
     # --- Panning helpers --------------------------------------------------
     def _start_panning(self, pos: QPoint):

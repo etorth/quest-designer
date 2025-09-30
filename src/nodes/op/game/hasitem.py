@@ -6,9 +6,15 @@ specific quantity of an item under a relation). This node now has:
 - No input sockets (acts as a source / query node)
 - Exactly one OUT socket of BOOL type
 """
-from qdnodesocket import QD_NodeSocket, SocketDirection, SocketType  # UPDATED import
-from nodes.qdopnode import QD_OpNode
-from PySide6.QtWidgets import QWidget, QHBoxLayout, QComboBox, QSpinBox, QLabel  # NEW imports
+from importlib import import_module
+from PySide6.QtWidgets import QWidget, QHBoxLayout, QComboBox, QSpinBox, QLabel
+
+_qdns = import_module('qdnodesocket')
+QD_NodeSocket = _qdns.QD_NodeSocket
+SocketDirection = _qdns.SocketDirection
+SocketType = _qdns.SocketType
+_qdop = import_module('nodes.qdopnode')
+QD_OpNode = _qdop.QD_OpNode
 
 __all__ = ["HasItem"]
 
@@ -60,7 +66,7 @@ class HasItem(QD_OpNode):
         layout.addWidget(self._label_ge)
         layout.addWidget(self._combo_item)
 
-        self.setEmbeddedWidget(container, auto_resize=True)
+        self.set_embedded_widget(container, auto_resize=True)
 
     def relation(self) -> str:  # noqa: D401
         return self._combo_relation.currentText()

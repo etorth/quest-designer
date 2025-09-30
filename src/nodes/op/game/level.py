@@ -6,9 +6,15 @@ This node now has:
 - No input sockets (acts as a source)
 - Exactly one OUT socket (BOOL)
 """
-from PySide6.QtWidgets import QWidget, QHBoxLayout, QComboBox, QSpinBox, QLabel  # NEW imports
-from qdnodesocket import QD_NodeSocket, SocketDirection, SocketType  # UPDATED import
-from nodes.qdopnode import QD_OpNode
+from importlib import import_module
+from PySide6.QtWidgets import QWidget, QHBoxLayout, QComboBox, QSpinBox, QLabel
+
+_qdns = import_module('qdnodesocket')
+QD_NodeSocket = _qdns.QD_NodeSocket
+SocketDirection = _qdns.SocketDirection
+SocketType = _qdns.SocketType
+_qdop = import_module('nodes.qdopnode')
+QD_OpNode = _qdop.QD_OpNode
 
 __all__ = ["Level"]
 
@@ -44,7 +50,7 @@ class Level(QD_OpNode):
         layout.addWidget(self._combo)
         layout.addWidget(self._spin)
         layout.addWidget(self._label)
-        self.setEmbeddedWidget(container, auto_resize=True)
+        self.set_embedded_widget(container, auto_resize=True)
 
     def _layout_sockets(self):  # noqa: D401
         w, h = self.size()

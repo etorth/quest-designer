@@ -1,16 +1,14 @@
 # -*- coding: utf-8 -*-
-"""Logic operation node.
-
-A simple logical operation node placeholder. It provides:
-- At least two input sockets (IN) by default
-- One output socket (OUT)
-- An embedded combo box to pick a logical operation: 与 (AND), 或 (OR), 非 (NOT)
-
-Future extensions could adjust input arity dynamically when selecting 非.
-"""
+"""Logic operation node (refactored to snake_case project APIs)."""
+from importlib import import_module
 from PySide6.QtWidgets import QComboBox
-from qdnodesocket import QD_NodeSocket, SocketDirection, SocketType  # UPDATED import
-from nodes.qdopnode import QD_OpNode
+
+_qdns = import_module('qdnodesocket')
+QD_NodeSocket = _qdns.QD_NodeSocket
+SocketDirection = _qdns.SocketDirection
+SocketType = _qdns.SocketType
+_qdop = import_module('nodes.qdopnode')
+QD_OpNode = _qdop.QD_OpNode
 
 __all__ = ["Logic"]
 
@@ -32,7 +30,7 @@ class Logic(QD_OpNode):
         self._op_combo.addItems(self._operations)
         self._current_op = self._op_combo.currentText()
         self._op_combo.currentTextChanged.connect(self._on_op_changed)
-        self.setEmbeddedWidget(self._op_combo, auto_resize=True)
+        self.set_embedded_widget(self._op_combo, auto_resize=True)
         self._layout_sockets()
 
     def _on_op_changed(self, text: str):  # noqa: D401
@@ -42,7 +40,7 @@ class Logic(QD_OpNode):
     def operation(self) -> str:  # noqa: D401
         return self._current_op
 
-    def setOperation(self, op_label: str):  # noqa: D401
+    def set_operation(self, op_label: str):  # noqa: D401
         if op_label in self._operations:
             idx = self._operations.index(op_label)
             if idx != self._op_combo.currentIndex():

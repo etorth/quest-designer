@@ -1,30 +1,23 @@
 # -*- coding: utf-8 -*-
-"""Function operation node.
-
-Single-input, single-output node applying a unary mathematical function.
-The function itself is not executed yet (this is a structural / UI element),
-but future logic could evaluate or serialize the chosen function.
-
-Differences vs Calc:
-- Only ONE input socket.
-- Combo box lists common unary functions: sin, cos, tan, asin, acos, atan,
-  sinh, cosh, tanh, exp, log, log10, sqrt, abs, floor, ceil, round.
-"""
+"""Function operation node (refactored to snake_case)."""
+from importlib import import_module
 from PySide6.QtWidgets import QComboBox
-from qdnodesocket import QD_NodeSocket, SocketDirection, SocketType  # UPDATED import
-from ...qdopnode import QD_OpNode  # CHANGED to relative import
+
+_qdns = import_module('qdnodesocket')
+QD_NodeSocket = _qdns.QD_NodeSocket
+SocketDirection = _qdns.SocketDirection
+SocketType = _qdns.SocketType
+_qdop = import_module('nodes.qdopnode')
+QD_OpNode = _qdop.QD_OpNode
 
 __all__ = ["Function"]
 
 
 class Function(QD_OpNode):
     def __init__(self, title: str = "数值函数", parent=None):
-        # Initialize with empty socket lists; we construct manually
         super().__init__(title=title, parent=parent, in_sockets=[], out_sockets=[])
-        # Exactly one input and one output
         self._in_sockets = [QD_NodeSocket(SocketDirection.IN, parent=self, sock_type=SocketType.DECIMAL)]
         self._out_sockets = [QD_NodeSocket(SocketDirection.OUT, parent=self, sock_type=SocketType.DECIMAL)]
-        # Embedded combo for function selection
         self._func_combo = QComboBox()
         self._functions = [
             "sin", "cos", "tan", "asin", "acos", "atan",
@@ -34,23 +27,22 @@ class Function(QD_OpNode):
         self._func_combo.addItems(self._functions)
         self._current_func = self._func_combo.currentText()
         self._func_combo.currentTextChanged.connect(self._on_func_changed)
-        self.setEmbeddedWidget(self._func_combo, auto_resize=True)
+        self.set_embedded_widget(self._func_combo, auto_resize=True)
         self._layout_sockets()
 
-    def _on_func_changed(self, text: str):  # noqa: D401
+    def _on_func_changed(self, text: str):
         self._current_func = text
-        # Future: trigger recomputation / validation
 
-    def function(self) -> str:  # noqa: D401
+    def function(self) -> str:
         return self._current_func
 
-    def setFunction(self, func_label: str):  # noqa: D401
+    def set_function(self, func_label: str):
         if func_label in self._functions:
             idx = self._functions.index(func_label)
             if idx != self._func_combo.currentIndex():
                 self._func_combo.setCurrentIndex(idx)
 
-    def _layout_sockets(self):  # noqa: D401
+    def _layout_sockets(self):
         w, h = self.size()
         if self._in_sockets:
             self._in_sockets[0].setPos(-QD_NodeSocket.RADIUS, h / 2)
