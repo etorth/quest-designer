@@ -4,6 +4,7 @@ from PySide6.QtWidgets import QGraphicsObject, QGraphicsItem, QGraphicsProxyWidg
 from PySide6.QtGui import QPainter, QPen, QBrush, QColor, QFont
 from PySide6.QtCore import QRectF, Qt, QEvent
 from typing import List, Optional
+import time  # NEW: for throttling edge path updates
 from qdnodesocket import QD_NodeSocket, SocketDirection, SocketType
 
 # Palette constants (centralize for easier theme tweaks)
@@ -46,6 +47,8 @@ class QD_Node(QGraphicsObject):
         self._resize_bottom = False
         self._resize_origin_scene = None
         self._orig_rect = None  # (x, y, w, h)
+        # NEW: last time (monotonic) we flushed edge updates (throttling support)
+        self._last_edge_update_monotonic: float = 0.0
 
         # --- Validate provided sockets (if any) ---
         if in_sockets is not None:
@@ -372,7 +375,6 @@ class QD_Node(QGraphicsObject):
             # Enforce minimums and embedded widget constraints
             min_w, min_h = self._min_allowed_size()
             if new_w < min_w:
-                # adjust x if dragging left
                 if self._resize_left:
                     new_x -= (min_w - new_w)
                 new_w = min_w
@@ -380,10 +382,9 @@ class QD_Node(QGraphicsObject):
                 if self._resize_top:
                     new_y -= (min_h - new_h)
                 new_h = min_h
-            # Prevent negative width/height flips
             if new_w <= 0 or new_h <= 0:
                 return
-            # Apply geometry
+            geometry_changed = False
             if (new_w != self._w) or (new_h != self._h):
                 try:
                     self.prepareGeometryChange()
@@ -391,9 +392,11 @@ class QD_Node(QGraphicsObject):
                     pass
                 self._w = new_w
                 self._h = new_h
+                geometry_changed = True
+            pos_changed = False
             if new_x != self.x() or new_y != self.y():
-                # move triggers itemChange for edges
-                self.setPos(new_x, new_y)
+                self.setPos(new_x, new_y)  # triggers edge updates via itemChange
+                pos_changed = True
             # Recenter embedded widget & layout sockets
             try:
                 self._center_embedded_widget_in_body()
@@ -405,16 +408,43 @@ class QD_Node(QGraphicsObject):
                     layout_method()  # type: ignore
                 except Exception:
                     pass
+            # If only size changed (no move), manually update edges now
+            if geometry_changed and not pos_changed:
+                # throttled size-only updates
+                self._update_all_connected_edges()
             self.update()
             event.accept()
             return
         super().mouseMoveEvent(event)
+
+    def _update_all_connected_edges(self, force: bool = False):
+        """Force all connected edges to recompute paths.
+
+        Throttled to ~60 FPS unless force=True (e.g. at end of resize).
+        """
+        now = time.monotonic()
+        if not force:
+            # ~60 fps cap (16ms). Adjust if needed.
+            if (now - self._last_edge_update_monotonic) < 0.016:
+                return
+        self._last_edge_update_monotonic = now
+        try:
+            for sock in (self._in_sockets or []):
+                for edge in sock.edges():
+                    edge.update_path()
+            for sock in (self._out_sockets or []):
+                for edge in sock.edges():
+                    edge.update_path()
+        except Exception:
+            pass
 
     def mouseReleaseEvent(self, event):
         if self._resizing and event.button() == Qt.MouseButton.LeftButton:
             self._resizing = False
             self._resize_left = self._resize_right = self._resize_top = self._resize_bottom = False
             self.setCursor(Qt.CursorShape.ArrowCursor)
+            # FINAL forced edge path recalculation after geometry settles
+            self._update_all_connected_edges(force=True)
             event.accept()
             return
         super().mouseReleaseEvent(event)
