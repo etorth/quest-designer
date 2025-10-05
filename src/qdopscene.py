@@ -28,7 +28,7 @@ class QD_OpScene(QD_GfxScene):
             QColor(0x33, 0x3f, 0x4c),  # minor grid
             QColor(0x44, 0x55, 0x66),  # major grid
         )
-        # Install op node factory set (Calc, Level, CheckItem, Logic, Compare, Function, Selector, Wait)
+        # Install op node factory set (updated: Concat)
         self._install_default_node_factories()
 
     def _install_default_node_factories(self):  # noqa: D401
@@ -37,11 +37,13 @@ class QD_OpScene(QD_GfxScene):
         self.register_node_type("等级值", self._factory_getlevel)
         self.register_node_type("物品", self._factory_checkitem)
         self.register_node_type("物品数量", self._factory_getitem)
-        self.register_node_type("输入", self._factory_input)  # NEW Input node
+        self.register_node_type("输入", self._factory_input)
         self.register_node_type("四则运算", self._factory_calc)
         self.register_node_type("关系运算", self._factory_compare)
         self.register_node_type("逻辑运算", self._factory_logic)
         self.register_node_type("函数", self._factory_function)
+        self.register_node_type("拼接", self._factory_concat)
+        self.register_node_type("字符串化", self._factory_stringify)  # NEW
         self.register_node_type("分支", self._factory_selector)
         self.register_node_type("等待", self._factory_wait)
         self.register_node_type("入口", self._factory_enter)
@@ -57,12 +59,12 @@ class QD_OpScene(QD_GfxScene):
         return CheckLeve()
 
     @staticmethod
-    def _factory_getlevel():  # noqa: D401 NEW factory
+    def _factory_getlevel():  # noqa: D401
         from nodes.op.game import GetLevel
         return GetLevel()
 
     @staticmethod
-    def _factory_checkitem():  # noqa: D401 (renamed from _factory_hasitem)
+    def _factory_checkitem():  # noqa: D401
         from nodes.op.game import CheckItem
         return CheckItem()
 
@@ -77,38 +79,47 @@ class QD_OpScene(QD_GfxScene):
         return Compare()
 
     @staticmethod
-    def _factory_function():  # noqa: D401 NEW factory
+    def _factory_function():  # noqa: D401
         from nodes.op.math import Function
         return Function()
 
     @staticmethod
-    def _factory_selector():  # noqa: D401 NEW factory
+    def _factory_concat():  # noqa: D401
+        from nodes.op.concat import Concat
+        return Concat()
+
+    @staticmethod
+    def _factory_selector():  # noqa: D401
         from nodes.op.selector import Selector
         return Selector()
 
     @staticmethod
-    def _factory_wait():  # noqa: D401 NEW factory
-        from nodes.op.wait import Wait  # updated path
+    def _factory_wait():  # noqa: D401
+        from nodes.op.wait import Wait
         return Wait()
 
     @staticmethod
-    def _factory_enter():  # noqa: D401 NEW factory
+    def _factory_enter():  # noqa: D401
         from nodes.op.enter import Enter
         return Enter()
 
     @staticmethod
-    def _factory_getitem():  # noqa: D401 NEW factory
+    def _factory_getitem():  # noqa: D401
         from nodes.op.game import GetItem
         return GetItem()
 
     @staticmethod
-    def _factory_input():  # noqa: D401 NEW factory
+    def _factory_input():  # noqa: D401
         from nodes.op import Input
         return Input()
 
-    # Example future hook
+    @staticmethod
+    def _factory_stringify():  # noqa: D401 NEW factory
+        from nodes.op.stringify import Stringify
+        return Stringify()
+
     def analyze(self):  # noqa: D401
-        """Perform a placeholder analysis (to be implemented)."""
+        """Placeholder analysis hook."""
         pass
 
     def contextMenuEvent(self, event):  # noqa: D401
