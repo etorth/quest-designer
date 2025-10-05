@@ -10,7 +10,7 @@ Sockets:
 """
 from importlib import import_module
 from typing import Optional
-from PySide6.QtWidgets import QWidget, QHBoxLayout, QComboBox  # NEW imports
+from PySide6.QtWidgets import QWidget, QHBoxLayout, QComboBox, QLineEdit  # UPDATED imports
 
 _qdns = import_module('qdnodesocket')
 QD_NodeSocket = _qdns.QD_NodeSocket
@@ -33,12 +33,14 @@ class Stringify(QD_OpNode):
         self._out_sockets = [
             QD_NodeSocket(SocketDirection.OUT, parent=self, sock_type=SocketType.STRING),
         ]
-        # Embedded UI
         self._combo = None  # type: QComboBox | None
         self._container = None  # type: QWidget | None
-        self._init_embedded_ui()  # NEW
+        self._format_edit = None  # type: QLineEdit | None
+        self._saved_format_str = "%f"  # NEW: persist user format across type toggles
+        self._init_embedded_ui()
         self._layout_sockets()
 
+    # --- Embedded UI -----------------------------------------------------
     def _init_embedded_ui(self):  # NEW helper
         container = QWidget()
         lay = QHBoxLayout(container)
@@ -46,15 +48,42 @@ class Stringify(QD_OpNode):
         lay.setSpacing(4)
         combo = QComboBox(container)
         combo.addItems(["DECIMAL", "INTEGER", "BOOL"])  # reordered entries
-        combo.currentIndexChanged.connect(self._on_type_changed)  # RESTORED connect
-        lay.addWidget(combo, 1)
+        combo.currentIndexChanged.connect(self._on_type_changed)
+        lay.addWidget(combo, 0)
         self._combo = combo
         self._container = container
-        # Attach to node (auto resize centers inside body region)
+        self._ensure_format_edit()  # initial (DECIMAL by default)
         try:
             self.set_embedded_widget(container, auto_resize=True)
         except Exception:
             pass
+
+    def _ensure_format_edit(self):  # NEW helper
+        if self._combo is None or self._container is None:
+            return
+        if self._current_type_name() != "DECIMAL":
+            if self._format_edit is not None:
+                # Persist current text before removal
+                try:
+                    self._saved_format_str = self._format_edit.text() or self._saved_format_str
+                except Exception:
+                    pass
+                try:
+                    self._format_edit.setParent(None)
+                except Exception:
+                    pass
+                self._format_edit = None
+            return
+        # Need DECIMAL format edit; recreate if missing using saved text
+        if self._format_edit is None:
+            fe = QLineEdit(self._container)
+            fe.setText(self._saved_format_str)
+            fe.setMaximumWidth(100)
+            # Insert after combo
+            layout = self._container.layout()
+            if layout is not None:
+                layout.addWidget(fe, 1)
+            self._format_edit = fe
 
     def _current_type_name(self) -> str:  # RESTORED helper
         return self._combo.currentText() if self._combo else "INTEGER"
@@ -65,10 +94,8 @@ class Stringify(QD_OpNode):
         if h < min_height:
             self._h = min_height
             w, h = self.size()
-        # Input on left vertically centered
         in_sock = self._in_sockets[0]
         in_sock.setPos(-QD_NodeSocket.RADIUS, h / 2)
-        # Output on right vertically centered
         out_sock = self._out_sockets[0]
         out_sock.setPos(w + QD_NodeSocket.RADIUS, h / 2)
 
@@ -88,13 +115,12 @@ class Stringify(QD_OpNode):
             "BOOL": SocketType.BOOL,
         }
         new_type = mapping.get(self._current_type_name(), SocketType.INTEGER)
-        if new_type == sock.socket_type():
-            return
-        # Mutate type in place; incompatible edges will be detached automatically
-        try:
-            sock.set_socket_type(new_type, detach_incompatible=True)
-        except Exception:
-            pass
-        # Re-layout in case visuals depend on type (currently size same)
+        if new_type != sock.socket_type():
+            try:
+                sock.set_socket_type(new_type, detach_incompatible=True)
+            except Exception:
+                pass
+        # Update format edit visibility/content
+        self._ensure_format_edit()
         self._layout_sockets()
         self.update()
