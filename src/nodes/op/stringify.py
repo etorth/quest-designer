@@ -27,7 +27,7 @@ class Stringify(QD_OpNode):
         super().__init__(title=title, parent=parent, in_sockets=[], out_sockets=[])
         # One INTEGER input
         self._in_sockets = [
-            QD_NodeSocket(SocketDirection.IN, parent=self, sock_type=SocketType.INTEGER),
+            QD_NodeSocket(SocketDirection.IN, parent=self, sock_type=SocketType.DECIMAL),
         ]
         # One STRING output
         self._out_sockets = [
