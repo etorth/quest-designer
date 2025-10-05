@@ -14,6 +14,7 @@ Design goals:
 - Track connected edges (single-connection policy currently enforced in scene)
 - Highlight state for potential targets while connecting
 - Each socket now has a mandatory data type (DECIMAL, INTEGER, STRING, BOOL)
+- NEW: Data type is now mutable post-construction (direction stays immutable)
 
 (Refactored: all project-local APIs now snake_case. Kept Qt override names.)
 """
@@ -120,6 +121,63 @@ class QD_NodeSocket(QGraphicsObject):
 
     def socket_type(self) -> SocketType:
         return self._type
+
+    def set_socket_type(self, new_type: SocketType, detach_incompatible: bool = True):  # NEW mutator
+        """Set (mutate) the socket's data type.
+
+        If detach_incompatible is True, any connected edges that become
+        incompatible under OUT->IN compatibility rules are removed from the
+        scene (or detached safely if scene missing).
+        """
+        if new_type == self._type:
+            return
+        self._type = new_type
+        if detach_incompatible and self._edges:
+            # Collect edges first to avoid mutation during iteration
+            to_check = list(self._edges)
+            for edge in to_check:
+                try:
+                    other = None
+                    # Determine counterpart socket
+                    if edge.begin_socket() is self:
+                        other = edge.end_socket()
+                    elif edge.end_socket() is self:
+                        other = edge.begin_socket()
+                    # If counterpart missing, just continue (edge is half-connected)
+                    if other is None:
+                        # Half-connected edge: allow type change; visual update only
+                        edge.update()
+                        continue
+                    # Need one OUT and one IN to evaluate compatibility
+                    if self.direction() == other.direction():
+                        # Invalid orientation pair; drop edge
+                        if edge.scene():
+                            edge.scene().removeItem(edge)
+                        else:
+                            edge.detach()
+                        continue
+                    # Determine OUT/IN ordering for compatibility test
+                    if self.direction() == SocketDirection.OUT:
+                        out_sock, in_sock = self, other
+                    else:
+                        out_sock, in_sock = other, self
+                    if not socket_data_type_match(out_sock, in_sock):
+                        # Incompatible now: remove
+                        if edge.scene():
+                            edge.scene().removeItem(edge)
+                        else:
+                            edge.detach()
+                    else:
+                        # Still compatible; just refresh visuals
+                        edge.update()
+                except Exception:
+                    # Best-effort cleanup
+                    try:
+                        if edge.scene():
+                            edge.scene().removeItem(edge)
+                    except Exception:
+                        pass
+        self.update()
 
     def add_edge(self, edge: 'QD_Edge'):
         if edge not in self._edges:
