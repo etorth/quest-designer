@@ -21,6 +21,8 @@ from importlib import import_module
 from typing import Optional, List
 from PySide6.QtWidgets import QMenu  # UPDATED: only QMenu here
 from PySide6.QtGui import QAction    # UPDATED: QAction from QtGui
+# NEW widget imports for embedded UI
+from PySide6.QtWidgets import QWidget, QHBoxLayout, QComboBox
 
 _qdns = import_module('qdnodesocket')
 QD_NodeSocket = _qdns.QD_NodeSocket
@@ -43,6 +45,19 @@ class NPCChat(QD_OpNode):
         ]
         self._out_sockets = []  # created via sync
         self._sync_option_out_sockets()
+        # NEW: build embedded widget (location + npc combo boxes)
+        container = QWidget()
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(4, 2, 4, 2)
+        layout.setSpacing(6)
+        self._location_combo = QComboBox(container)
+        self._location_combo.addItems(["道馆", "比奇县"])  # requested entries
+        self._npc_combo = QComboBox(container)
+        self._npc_combo.addItems(["张铁匠", "药师阿贵"])  # requested entries
+        layout.addWidget(self._location_combo)
+        layout.addWidget(self._npc_combo)
+        # Embed and auto-fit node size
+        self.set_embedded_widget(container, auto_resize=True)
         self._layout_sockets()
 
     # --- Socket role helpers --------------------------------------------
