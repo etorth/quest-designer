@@ -19,7 +19,24 @@ SocketType = _qdns.SocketType
 _qdop = import_module('nodes.qdopnode')
 QD_OpNode = _qdop.QD_OpNode
 
-__all__ = ["Stringify"]
+__all__ = ["Stringify", "validate_decimal_format"]
+
+
+def validate_decimal_format(fmt: str) -> bool:
+    """Return True if ``fmt`` can format a decimal value using ``%`` operator.
+
+    The validation rule: attempt ``fmt % 12.345``; if it raises any exception,
+    the format string is considered invalid.
+    Leading/trailing whitespace is preserved (not stripped) to let caller decide.
+    ``None`` or empty string returns False (empty is not a valid percent format for a number).
+    """
+    if fmt is None:
+        return False
+    try:
+        _ = fmt % 12.345
+        return True
+    except Exception:
+        return False
 
 
 class Stringify(QD_OpNode):
@@ -79,11 +96,29 @@ class Stringify(QD_OpNode):
             fe = QLineEdit(self._container)
             fe.setText(self._saved_format_str)
             fe.setMaximumWidth(100)
+            fe.textChanged.connect(self._on_format_changed)  # connect validation
             # Insert after combo
             layout = self._container.layout()
             if layout is not None:
                 layout.addWidget(fe, 1)
             self._format_edit = fe
+            # initial validation
+            self._on_format_changed(self._format_edit.text())
+
+    def _on_format_changed(self, text: str):
+        """Validate decimal format string live and color background if invalid.
+        Valid: clear custom background and remember string.
+        Invalid: set light red background.
+        """
+        if self._format_edit is None:
+            return
+        ok = validate_decimal_format(text)
+        if ok:
+            # remember good format
+            self._saved_format_str = text
+            self._format_edit.setStyleSheet("")
+        else:
+            self._format_edit.setStyleSheet("background-color: rgb(255, 180, 180);")
 
     def _current_type_name(self) -> str:  # RESTORED helper
         return self._combo.currentText() if self._combo else "INTEGER"
