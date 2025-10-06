@@ -54,6 +54,8 @@ class Stringify(QD_OpNode):
         self._container = None  # type: QWidget | None
         self._format_edit = None  # type: QLineEdit | None
         self._saved_format_str = "%f"  # NEW: persist user format across type toggles
+        self._bool_repr_combo = None  # NEW: optional bool representation combo
+        self._saved_bool_repr = "1/0"  # default representation saved
         self._init_embedded_ui()
         self._layout_sockets()
 
@@ -79,6 +81,7 @@ class Stringify(QD_OpNode):
         if self._combo is None or self._container is None:
             return
         if self._current_type_name() != "DECIMAL":
+            # When leaving DECIMAL mode remove format edit
             if self._format_edit is not None:
                 # Persist current text before removal
                 try:
@@ -100,10 +103,42 @@ class Stringify(QD_OpNode):
             # Insert after combo
             layout = self._container.layout()
             if layout is not None:
-                layout.addWidget(fe, 1)
+                layout.addWidget(fe)  # removed stretch argument
             self._format_edit = fe
             # initial validation
             self._on_format_changed(self._format_edit.text())
+
+    def _ensure_bool_repr_combo(self):  # NEW helper
+        """Ensure the BOOL representation combo exists only in BOOL mode."""
+        if self._combo is None or self._container is None:
+            return
+        layout = self._container.layout()
+        is_bool_mode = self._current_type_name() == "BOOL"
+        if not is_bool_mode:
+            if self._bool_repr_combo is not None:
+                try:
+                    self._saved_bool_repr = self._bool_repr_combo.currentText() or self._saved_bool_repr
+                except Exception:
+                    pass
+                try:
+                    self._bool_repr_combo.setParent(None)
+                except Exception:
+                    pass
+                self._bool_repr_combo = None
+            return
+        # BOOL mode: create if missing
+        if self._bool_repr_combo is None:
+            combo = QComboBox(self._container)
+            combo.addItems(["1/0", "true/false", "True/False", "TRUE/FALSE", "真/假"])
+            # restore saved if present
+            idx = combo.findText(self._saved_bool_repr)
+            if idx >= 0:
+                combo.setCurrentIndex(idx)
+            layout.addWidget(combo)  # removed stretch argument
+            self._bool_repr_combo = combo
+        else:
+            # ensure order/layout stable; nothing else needed
+            pass
 
     def _on_format_changed(self, text: str):
         """Validate decimal format string live and color background if invalid.
@@ -155,7 +190,8 @@ class Stringify(QD_OpNode):
                 sock.set_socket_type(new_type, detach_incompatible=True)
             except Exception:
                 pass
-        # Update format edit visibility/content
+        # Update DECIMAL format editor and BOOL representation combo
         self._ensure_format_edit()
+        self._ensure_bool_repr_combo()
         self._layout_sockets()
         self.update()
