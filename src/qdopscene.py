@@ -47,6 +47,7 @@ class QD_OpScene(QD_GfxScene):
         self.register_node_type("分支", self._factory_selector)
         self.register_node_type("等待", self._factory_wait)
         self.register_node_type("入口", self._factory_enter)
+        self.register_node_type("出口", self._factory_exit)  # NEW Exit
         self.register_node_type("NPC对话", self._factory_npcchat)  # NEW NPC chat
 
     @staticmethod
@@ -123,6 +124,11 @@ class QD_OpScene(QD_GfxScene):
     def _factory_npcchat():  # NEW factory
         from nodes.op.game import NPCChat
         return NPCChat()
+
+    @staticmethod
+    def _factory_exit():  # NEW factory for Exit node
+        from nodes.op.exit import Exit
+        return Exit()
 
     def analyze(self):  # noqa: D401
         """Placeholder analysis hook."""
