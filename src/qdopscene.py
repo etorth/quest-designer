@@ -49,6 +49,7 @@ class QD_OpScene(QD_GfxScene):
         self.register_node_type("入口", self._factory_enter)
         self.register_node_type("出口", self._factory_exit)  # NEW Exit
         self.register_node_type("NPC对话", self._factory_npcchat)  # NEW NPC chat
+        self.register_node_type("击杀怪物", self._factory_killmonster)  # NEW KillMonster
 
     @staticmethod
     def _factory_calc():  # noqa: D401
@@ -129,6 +130,11 @@ class QD_OpScene(QD_GfxScene):
     def _factory_exit():  # NEW factory for Exit node
         from nodes.op.exit import Exit
         return Exit()
+
+    @staticmethod
+    def _factory_killmonster():  # NEW factory
+        from nodes.op.game import KillMonster
+        return KillMonster()
 
     def analyze(self):  # noqa: D401
         """Placeholder analysis hook."""
