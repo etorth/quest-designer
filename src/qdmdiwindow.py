@@ -7,7 +7,7 @@ After refactor, this base no longer instantiates a scene/view. Subclasses
 """
 from PySide6.QtWidgets import QMdiSubWindow, QGraphicsView
 from PySide6.QtCore import Qt
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:  # pragma: no cover - type hints only
     from qdgfxscene import QD_GfxScene  # noqa: F401
@@ -43,8 +43,8 @@ class QD_MdiWindow(QMdiSubWindow):
     def graphics_scene(self):  # noqa: D401
         return getattr(self, "scene", None)
 
-    def graphics_view(self) -> 'Optional[QD_GfxView]':  # noqa: D401
+    def graphics_view(self) -> 'QD_GfxView | None':  # noqa: D401
         from typing import cast
-        return cast('Optional[QD_GfxView]', getattr(self, "view", None))
+        return cast('QD_GfxView | None', getattr(self, "view", None))
 
 __all__ = ["QD_MdiWindow"]

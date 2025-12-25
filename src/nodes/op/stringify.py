@@ -9,7 +9,7 @@ Sockets:
   OUT[0]: STRING
 """
 from importlib import import_module
-from typing import Optional
+
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QComboBox, QLineEdit  # UPDATED imports
 
 _qdns = import_module('qdnodesocket')
@@ -40,7 +40,7 @@ def validate_decimal_format(fmt: str) -> bool:
 
 
 class Stringify(QD_OpNode):
-    def __init__(self, title: str = "字符串化", parent: Optional[object] = None):
+    def __init__(self, title: str = "字符串化", parent: object | None = None):
         super().__init__(title=title, parent=parent, in_sockets=[], out_sockets=[])
         # One INTEGER input
         self._in_sockets = [

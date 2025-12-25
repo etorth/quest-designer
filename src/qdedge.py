@@ -12,7 +12,6 @@ Semantics (UPDATED AGAIN):
     * Only IN socket: beginning=mouse temp position, ending=IN socket.
 """
 from enum import Enum, auto
-from typing import Optional, Tuple
 
 from PySide6.QtWidgets import QGraphicsPathItem, QGraphicsItem
 from PySide6.QtGui import QPainterPath, QPen, QColor
@@ -40,12 +39,12 @@ _EDGE_COLOR_PROCESS_DELETING = QColor("#ff9f3d")
 
 
 class QD_Edge(QGraphicsPathItem):
-    def __init__(self, begin: Optional[QD_NodeSocket] = None, end: Optional[QD_NodeSocket] = None, parent: Optional[QGraphicsItem] = None):
+    def __init__(self, begin: QD_NodeSocket | None = None, end: QD_NodeSocket | None = None, parent: QGraphicsItem | None = None):
         super().__init__(parent)
-        self._begin: Optional[QD_NodeSocket] = None
-        self._end: Optional[QD_NodeSocket] = None
+        self._begin: QD_NodeSocket | None = None
+        self._end: QD_NodeSocket | None = None
         self._status: EdgeStatus = EdgeStatus.CONNECTING
-        self._temp_pos: Optional[QPointF] = None
+        self._temp_pos: QPointF | None = None
         self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, True)
         self.setZValue(-1)
         if begin is None and end is None:
@@ -104,14 +103,14 @@ class QD_Edge(QGraphicsPathItem):
     def status(self) -> EdgeStatus:
         return self._status
 
-    def _in_socket(self) -> Optional[QD_NodeSocket]:
+    def _in_socket(self) -> QD_NodeSocket | None:
         if self._begin and self._begin.direction() == SocketDirection.IN:
             return self._begin
         if self._end and self._end.direction() == SocketDirection.IN:
             return self._end
         return None
 
-    def _out_socket(self) -> Optional[QD_NodeSocket]:
+    def _out_socket(self) -> QD_NodeSocket | None:
         if self._begin and self._begin.direction() == SocketDirection.OUT:
             return self._begin
         if self._end and self._end.direction() == SocketDirection.OUT:
@@ -167,7 +166,7 @@ class QD_Edge(QGraphicsPathItem):
         self.update_path()
 
     # --- Geometry/path ----------------------------------------------------
-    def _endpoint_positions(self) -> Optional[Tuple[QPointF, QPointF]]:
+    def _endpoint_positions(self) -> tuple[QPointF, QPointF] | None:
         """Return (p_begin, p_end) according to new semantics OUT->IN.
 
         p_begin = OUT socket or temp
@@ -250,10 +249,10 @@ class QD_Edge(QGraphicsPathItem):
         # Arrowhead intentionally removed per user request (no directional marker)
 
     # --- Utilities --------------------------------------------------------
-    def begin_socket(self) -> Optional[QD_NodeSocket]:
+    def begin_socket(self) -> QD_NodeSocket | None:
         return self._begin
 
-    def end_socket(self) -> Optional[QD_NodeSocket]:
+    def end_socket(self) -> QD_NodeSocket | None:
         return self._end
 
     def is_complete(self) -> bool:

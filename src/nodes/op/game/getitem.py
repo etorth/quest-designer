@@ -8,7 +8,7 @@ Produces the (integer) count of a selected item. Acts as a source node:
 Embedded widget: a QComboBox listing classic Legend of Mir style items.
 """
 from importlib import import_module
-from typing import Optional
+
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QComboBox
 
 _qdns = import_module('qdnodesocket')
@@ -22,7 +22,7 @@ __all__ = ["GetItem"]
 
 
 class GetItem(QD_OpNode):
-    def __init__(self, title: str = "物品数量", parent: Optional[object] = None):
+    def __init__(self, title: str = "物品数量", parent: object | None = None):
         super().__init__(title=title, parent=parent, in_sockets=[], out_sockets=[])
         # Single INTEGER output
         self._out_sockets = [

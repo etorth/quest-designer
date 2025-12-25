@@ -21,7 +21,7 @@ Design goals:
 from __future__ import annotations
 
 from enum import Enum, auto
-from typing import Optional, List, TYPE_CHECKING
+from typing import TYPE_CHECKING
 from PySide6.QtWidgets import QGraphicsObject, QGraphicsItem
 from PySide6.QtGui import QPainter, QPen, QBrush, QColor, QPainterPath
 from PySide6.QtCore import Qt, QRectF, QPointF
@@ -101,7 +101,7 @@ class QD_NodeSocket(QGraphicsObject):
         SocketType.PROCESS: "P",  # NEW label
     }
 
-    def __init__(self, direction: SocketDirection, parent: Optional[QGraphicsObject], sock_type: SocketType = SocketType.DECIMAL):
+    def __init__(self, direction: SocketDirection, parent: QGraphicsObject | None, sock_type: SocketType = SocketType.DECIMAL):
         if parent is None:
             raise ValueError("QD_NodeSocket requires a non-null parent QGraphicsItem at creation")
         super().__init__(parent)
@@ -109,7 +109,7 @@ class QD_NodeSocket(QGraphicsObject):
         self._type = sock_type       # immutable
         self._hover = False
         self._highlight = False
-        self._edges: List[QD_Edge] = []
+        self._edges: list[QD_Edge] = []
 
         self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, True)
         self.setAcceptHoverEvents(True)
@@ -187,7 +187,7 @@ class QD_NodeSocket(QGraphicsObject):
         if edge in self._edges:
             self._edges.remove(edge)
 
-    def edges(self) -> List['QD_Edge']:
+    def edges(self) -> list['QD_Edge']:
         return list(self._edges)
 
     def is_occupied(self) -> bool:

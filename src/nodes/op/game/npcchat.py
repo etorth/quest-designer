@@ -18,7 +18,6 @@ Minimum socket set:
 Adding/removing options keeps dialog text + >=1 option invariant; PROCESS flow IN stays at end; number of PROCESS OUT sockets always equals number of option STRING inputs.
 """
 from importlib import import_module
-from typing import Optional, List
 from PySide6.QtWidgets import QMenu  # UPDATED: only QMenu here
 from PySide6.QtGui import QAction    # UPDATED: QAction from QtGui
 # NEW widget imports for embedded UI
@@ -35,7 +34,7 @@ __all__ = ["NPCChat"]
 
 
 class NPCChat(QD_OpNode):
-    def __init__(self, title: str = "NPC对话", parent: Optional[object] = None):
+    def __init__(self, title: str = "NPC对话", parent: object | None = None):
         super().__init__(title=title, parent=parent, in_sockets=[], out_sockets=[])
         # Build minimum: text, 1 option, flow in
         self._in_sockets = [
@@ -64,14 +63,14 @@ class NPCChat(QD_OpNode):
     def text_in_socket(self) -> QD_NodeSocket:
         return self._in_sockets[0]
 
-    def option_in_sockets(self) -> List[QD_NodeSocket]:
+    def option_in_sockets(self) -> list[QD_NodeSocket]:
         # All STRING sockets except the first (dialog text) and excluding the final PROCESS IN
         return [s for s in self._in_sockets[1:-1] if s.socket_type() == SocketType.STRING]
 
     def flow_in_socket(self) -> QD_NodeSocket:
         return self._in_sockets[-1]
 
-    def option_out_sockets(self) -> List[QD_NodeSocket]:
+    def option_out_sockets(self) -> list[QD_NodeSocket]:
         return list(self._out_sockets)
 
     # --- Dynamic option management --------------------------------------

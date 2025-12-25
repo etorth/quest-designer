@@ -3,7 +3,7 @@
 from PySide6.QtWidgets import QGraphicsObject, QGraphicsItem, QGraphicsProxyWidget, QWidget
 from PySide6.QtGui import QPainter, QPen, QBrush, QColor, QFont
 from PySide6.QtCore import QRectF, Qt, QEvent
-from typing import List, Optional
+
 import time  # NEW: for throttling edge path updates
 from qdnodesocket import QD_NodeSocket, SocketDirection, SocketType
 
@@ -26,8 +26,8 @@ _RESIZE_MARGIN = 6      # NEW: pixel margin for edge resize detection
 
 class QD_Node(QGraphicsObject):
     def __init__(self, title: str = "Node", width: float = 140, height: float = 70, parent=None,
-                 in_sockets: Optional[List[QD_NodeSocket]] = None,
-                 out_sockets: Optional[List[QD_NodeSocket]] = None):
+                 in_sockets: list[QD_NodeSocket] | None = None,
+                 out_sockets: list[QD_NodeSocket] | None = None):
         super().__init__(parent)
         self._title = title
         self._w = width
@@ -65,8 +65,8 @@ class QD_Node(QGraphicsObject):
                     raise ValueError("out_sockets contains a socket that is not OUT direction")
 
         # NEW socket containers (may be None or list). Use exactly what caller passes after validation.
-        self._in_sockets: Optional[List[QD_NodeSocket]] = in_sockets if in_sockets is not None else []
-        self._out_sockets: Optional[List[QD_NodeSocket]] = out_sockets if out_sockets is not None else []
+        self._in_sockets: list[QD_NodeSocket] | None = in_sockets if in_sockets is not None else []
+        self._out_sockets: list[QD_NodeSocket] | None = out_sockets if out_sockets is not None else []
 
         # Set interactive flags individually (avoids type checker warning for bitwise OR)
         self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsMovable, True)
@@ -243,10 +243,10 @@ class QD_Node(QGraphicsObject):
         return self._embedded_widget
 
     # --- Socket accessors -------------------------------------------------
-    def input_sockets(self) -> List[QD_NodeSocket]:  # camelCase
+    def input_sockets(self) -> list[QD_NodeSocket]:  # camelCase
         return self._in_sockets if self._in_sockets is not None else []
 
-    def output_sockets(self) -> List[QD_NodeSocket]:  # camelCase
+    def output_sockets(self) -> list[QD_NodeSocket]:  # camelCase
         return self._out_sockets if self._out_sockets is not None else []
 
     def add_input_socket(self, socket: QD_NodeSocket | None = None, *, sock_type: SocketType | None = None) -> QD_NodeSocket:

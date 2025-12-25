@@ -19,7 +19,7 @@ Enhancements implemented:
       remains compatible with each connected IN socket; incompatible edges are removed.
 """
 from importlib import import_module
-from typing import Optional, Any
+from typing import Any
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QComboBox, QLineEdit, QSpinBox, QTextEdit  # ADDED QTextEdit
 from PySide6.QtGui import QDoubleValidator, QFontMetrics  # UPDATED imports
 from PySide6.QtGui import QValidator  # NEW import for state comparison
@@ -43,7 +43,7 @@ __all__ = ["Input"]
 
 
 class Input(QD_OpNode):
-    def __init__(self, title: str = "输入", parent: Optional[object] = None):
+    def __init__(self, title: str = "输入", parent: object | None = None):
         super().__init__(title=title, parent=parent, in_sockets=[], out_sockets=[])
         # OUT socket now starts as BOOL to match default combo selection
         self._out_sockets = [

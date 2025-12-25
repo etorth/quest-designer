@@ -5,7 +5,8 @@ QD_GfxScene centralizes custom rendering / behaviors (grid, future snapping,
 context menus, selection helpers, etc.). QD_MdiWindow uses this instead of a
 plain QGraphicsScene so later enhancements remain localized here.
 """
-from typing import Optional, Callable, Dict, TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, cast
+from collections.abc import Callable
 from PySide6.QtWidgets import QGraphicsScene
 from PySide6.QtGui import QPainter, QPen, QColor, QTransform
 from PySide6.QtCore import QRectF, QPointF, Qt
@@ -24,7 +25,7 @@ class QD_GfxScene(QGraphicsScene):
     _GRID_MINOR = QColor(0x43, 0x46, 0x4c)
     _GRID_MAJOR = QColor(0x54, 0x59, 0x5f)
 
-    def __init__(self, parent=None, scene_rect: Optional[QRectF] = None, grid_step: int = 50):
+    def __init__(self, parent=None, scene_rect: QRectF | None = None, grid_step: int = 50):
         if scene_rect is None:
             x, y, w, h = self.DEFAULT_RECT
             super().__init__(x, y, w, h, parent)
@@ -32,10 +33,10 @@ class QD_GfxScene(QGraphicsScene):
             super().__init__(scene_rect, parent)
         self._grid_step = grid_step
         self.setItemIndexMethod(QGraphicsScene.ItemIndexMethod.NoIndex)
-        self._node_factories: Dict[str, Callable[[], 'QD_Node']] = {}
-        self._connecting_edge: Optional[QD_Edge] = None
-        self._connecting_socket: Optional[QD_NodeSocket] = None
-        self._hover_target_socket: Optional[QD_NodeSocket] = None
+        self._node_factories: dict[str, Callable[[], 'QD_Node']] = {}
+        self._connecting_edge: QD_Edge | None = None
+        self._connecting_socket: QD_NodeSocket | None = None
+        self._hover_target_socket: QD_NodeSocket | None = None
 
     def set_palette(self, bg: QColor, minor: QColor, major: QColor):
         self._BG_COLOR = bg

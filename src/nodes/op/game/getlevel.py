@@ -8,7 +8,7 @@ Sockets:
   OUT[0]: INTEGER (level value)
 """
 from importlib import import_module
-from typing import Optional
+
 
 _qdns = import_module('qdnodesocket')
 QD_NodeSocket = _qdns.QD_NodeSocket
@@ -21,7 +21,7 @@ __all__ = ["GetLevel"]
 
 
 class GetLevel(QD_OpNode):
-    def __init__(self, title: str = "等级值", parent: Optional[object] = None):
+    def __init__(self, title: str = "等级值", parent: object | None = None):
         # Explicit empty socket lists; we add only an OUT INTEGER socket
         super().__init__(title=title, parent=parent, in_sockets=[], out_sockets=[])
         self._out_sockets = [

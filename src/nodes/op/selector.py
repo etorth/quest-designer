@@ -16,7 +16,7 @@ Currently this node is structural only (no evaluation logic). It mirrors the
 conventions used by other op nodes (dynamic import shims + snake_case APIs).
 """
 from importlib import import_module
-from typing import Optional
+
 
 _qdns = import_module('qdnodesocket')
 QD_NodeSocket = _qdns.QD_NodeSocket
@@ -29,7 +29,7 @@ __all__ = ["Selector"]
 
 
 class Selector(QD_OpNode):
-    def __init__(self, title: str = "分支", parent: Optional[object] = None):
+    def __init__(self, title: str = "分支", parent: object | None = None):
         # Initialize base with explicit empty socket arrays so we manually create sockets
         super().__init__(title=title, parent=parent, in_sockets=[], out_sockets=[])
         # Inputs: BOOL (condition), PROCESS (incoming flow)

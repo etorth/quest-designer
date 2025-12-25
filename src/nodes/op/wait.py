@@ -10,7 +10,7 @@ Sockets:
   OUT[0]: PROCESS (continuation)
 """
 from importlib import import_module
-from typing import Optional
+
 
 _qdns = import_module('qdnodesocket')
 QD_NodeSocket = _qdns.QD_NodeSocket
@@ -23,7 +23,7 @@ __all__ = ["Wait"]
 
 
 class Wait(QD_OpNode):
-    def __init__(self, title: str = "等待", parent: Optional[object] = None):
+    def __init__(self, title: str = "等待", parent: object | None = None):
         super().__init__(title=title, parent=parent, in_sockets=[], out_sockets=[])
         self._in_sockets = [
             QD_NodeSocket(SocketDirection.IN, parent=self, sock_type=SocketType.BOOL),

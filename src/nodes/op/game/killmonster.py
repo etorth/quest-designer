@@ -12,7 +12,7 @@ Embedded UI:
   Timeout seconds (QSpinBox)
 """
 from importlib import import_module
-from typing import Optional
+
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QComboBox, QSpinBox, QLabel
 
 _qdns = import_module('qdnodesocket')
@@ -26,7 +26,7 @@ __all__ = ["KillMonster"]
 
 
 class KillMonster(QD_OpNode):
-    def __init__(self, title: str = "击杀怪物", parent: Optional[object] = None):
+    def __init__(self, title: str = "击杀怪物", parent: object | None = None):
         super().__init__(title=title, parent=parent, in_sockets=[], out_sockets=[])
         # Sockets ---------------------------------------------------------
         self._in_sockets = [
