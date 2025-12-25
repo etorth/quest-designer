@@ -17,12 +17,13 @@ __all__ = ["QD_OpWindow"]
 
 
 class QD_OpWindow(QD_MdiWindow):
-    def __init__(self, title: str | None = "Op Graph", parent: QWidget | None = None):
+    def __init__(self, title: str | None = "Op Graph", parent: QWidget | None = None, state_node=None):
         super().__init__(title=title, parent=parent)
+        self._state_node = state_node  # Reference to the corresponding State node
         self._init_scene_view()
 
     def _init_scene_view(self):
-        self.scene = QD_OpScene(self)
+        self.scene = QD_OpScene(self, state_node=self._state_node)
         self.view = QD_GfxView(self.scene, self)
         self.setWidget(self.view)
         self.view.setFocusPolicy(Qt.FocusPolicy.StrongFocus)

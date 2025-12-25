@@ -20,8 +20,9 @@ __all__ = ["QD_OpScene"]
 
 
 class QD_OpScene(QD_GfxScene):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, state_node=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self._state_node = state_node  # Reference to corresponding State node
         # Apply op-specific palette (cool blue tint)
         self.set_palette(
             QColor(0x26, 0x31, 0x3d),  # background
@@ -139,6 +140,41 @@ class QD_OpScene(QD_GfxScene):
     def analyze(self):  # noqa: D401
         """Placeholder analysis hook."""
         pass
+
+    def _count_exit_nodes(self):
+        """Count the number of Exit nodes in the scene."""
+        from nodes.op.exit import Exit
+        count = 0
+        for item in self.items():
+            if isinstance(item, Exit):
+                count += 1
+        return count
+
+    def _update_state_node_sockets(self):
+        """Update the corresponding State node's OUT sockets based on Exit node count."""
+        if self._state_node is None:
+            return
+        exit_count = self._count_exit_nodes()
+        try:
+            self._state_node.update_exit_count(exit_count)
+        except Exception:
+            pass
+
+    def addItem(self, item):
+        """Override to track Exit nodes and update State node."""
+        super().addItem(item)
+        # Check if it's an Exit node
+        from nodes.op.exit import Exit
+        if isinstance(item, Exit):
+            self._update_state_node_sockets()
+
+    def removeItem(self, item):
+        """Override to track Exit nodes and update State node."""
+        super().removeItem(item)
+        # Check if it was an Exit node
+        from nodes.op.exit import Exit
+        if isinstance(item, Exit):
+            self._update_state_node_sockets()
 
     def contextMenuEvent(self, event):  # noqa: D401
         scene_pos = event.scenePos()

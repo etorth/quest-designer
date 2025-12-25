@@ -122,7 +122,8 @@ class QD_StateScene(QD_GfxScene):
                     return
             except Exception:
                 pass
-        op_win = QD_OpWindow(title=node.title())
+        # Pass the state node reference to the Op window
+        op_win = QD_OpWindow(title=node.title(), state_node=node)
         try:
             mdi_area.addSubWindow(op_win)
         except Exception:
