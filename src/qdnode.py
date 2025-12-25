@@ -219,8 +219,9 @@ class QD_Node(QGraphicsObject):
         """Center the embedded widget in the content region (excluding title bar).
 
         Horizontal: centered within width minus padding.
-        Vertical: centered within area below title bar. If the widget is taller
-        than the content region, clamp to top (just below title bar) with padding.
+        Vertical: centered within area below title bar with padding top and bottom.
+        If the widget is taller than the content region, clamp to top (just below title bar) with padding.
+        If manually resizing node smaller, constrain widget to fit within available space.
         """
         if self._proxy is None:
             return
@@ -229,14 +230,36 @@ class QD_Node(QGraphicsObject):
             return
         w = widget.width() or widget.sizeHint().width()
         h = widget.height() or widget.sizeHint().height()
-        content_height = max(0.0, self._h - _TITLE_BAR_HEIGHT - padding)
+        content_height = max(0.0, self._h - _TITLE_BAR_HEIGHT - padding * 2)
+        content_width = max(0.0, self._w - padding * 2)
+        
+        # If widget is larger than available space, constrain it by resizing
+        needs_resize = False
+        target_w = w
+        target_h = h
+        
+        if h > content_height:
+            target_h = int(content_height)
+            needs_resize = True
+        if w > content_width:
+            target_w = int(content_width)
+            needs_resize = True
+            
+        if needs_resize:
+            # Actually resize the widget to fit
+            widget.resize(target_w, target_h)
+            widget.updateGeometry()
+            # Update our cached dimensions
+            w = target_w
+            h = target_h
+        
         # Horizontal center inside padded area
         x = padding + max(0.0, (self._w - 2 * padding - w) / 2.0)
-        # Vertical center inside content body (exclude title bar)
+        # Vertical center inside content body (exclude title bar, include top/bottom padding)
         if h >= content_height:
             y = _TITLE_BAR_HEIGHT + padding
         else:
-            y = _TITLE_BAR_HEIGHT + (content_height - h) / 2.0
+            y = _TITLE_BAR_HEIGHT + padding + (content_height - h) / 2.0
         self._proxy.setPos(x, y)
 
     def embedded_widget(self) -> QWidget | None:  # noqa: D401

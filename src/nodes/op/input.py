@@ -168,6 +168,7 @@ class Input(QD_OpNode):
             if prev_value is not None:
                 te.setPlainText(str(prev_value))
             te.setFixedHeight(60)
+            te.updateGeometry()  # Ensure size is committed
             te.textChanged.connect(self._on_string_text_changed)  # NEW dynamic resize hook
             self._value_widget = te
         # Add new widget to layout
@@ -175,6 +176,9 @@ class Input(QD_OpNode):
             self._value_layout.addWidget(self._value_widget, 1)
         # NEW: auto size the value widget based on its type/content
         self._autosize_value_widget()
+        # Force container to update before calculating node size
+        if self._container:
+            self._container.updateGeometry()
         self._auto_resize_after_value_change()
         self.update()
 
@@ -194,12 +198,20 @@ class Input(QD_OpNode):
         target_h = min(240, max(60, line_count * line_h + 16))
         changed = False
         if abs(te.width() - target_w) > 6:
-            te.setFixedWidth(target_w)
+            te.setMinimumWidth(target_w)
+            te.setMaximumWidth(target_w)
             changed = True
-        if abs(te.height() - target_h) > 6:
-            te.setFixedHeight(target_h)
+        # Use min/max instead of fixed to allow manual node resizing to shrink the widget
+        if abs(te.minimumHeight() - target_h) > 6 or abs(te.maximumHeight() - target_h) > 6:
+            te.setMinimumHeight(target_h)
+            te.setMaximumHeight(target_h)
             changed = True
         if changed:
+            # Force widget to commit its new size
+            te.updateGeometry()
+            # Force container to update its geometry before resizing node
+            if self._container:
+                self._container.updateGeometry()
             # Re-run container and node sizing
             self._auto_resize_after_value_change()
             self.update()
@@ -243,11 +255,13 @@ class Input(QD_OpNode):
     def _auto_resize_after_value_change(self):  # NEW helper
         if self._container is None:
             return
+        # Force container to recalculate its size hint
+        self._container.updateGeometry()
         self._container.adjustSize()
         hint = self._container.sizeHint()
         padding = _NODE_CONTENT_PADDING
         needed_w = hint.width() + padding * 2
-        needed_h = _NODE_TITLE_BAR_HEIGHT + hint.height() + padding
+        needed_h = _NODE_TITLE_BAR_HEIGHT + hint.height() + padding * 2
         desired_w = max(self._base_min_w, needed_w)
         desired_h = max(self._base_min_h, needed_h)
         size_changed = (desired_w != self._w) or (desired_h != self._h)
