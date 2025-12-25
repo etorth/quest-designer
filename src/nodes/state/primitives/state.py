@@ -62,6 +62,10 @@ class State(QD_StateNode):
         
         # Relayout sockets
         self._layout_sockets()
+        
+        # Update all connected edges after resize
+        self._update_connected_edges()
+        
         self.update()
 
     def _resize_for_sockets(self):
@@ -85,6 +89,24 @@ class State(QD_StateNode):
             except Exception:
                 pass
             self._h = min_height
+
+    def _update_connected_edges(self):
+        """Update all edges connected to this node's sockets."""
+        # Update edges from IN socket
+        if self._in_sockets:
+            for edge in self._in_sockets[0].edges():
+                try:
+                    edge.update_path()
+                except Exception:
+                    pass
+        
+        # Update edges from all OUT sockets
+        for socket in self._out_sockets:
+            for edge in socket.edges():
+                try:
+                    edge.update_path()
+                except Exception:
+                    pass
 
     def _layout_sockets(self):
         w, h = self.size()
