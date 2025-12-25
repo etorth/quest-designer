@@ -39,9 +39,10 @@ class QD_StateScene(QD_GfxScene):
         # e.g., self._ensure_enter_node()
 
     def _install_default_node_factories(self):  # noqa: D401
-        # Register default state primitives (Enter/Exit)
+        # Register default state primitives (Enter/Exit/State)
         self.register_node_type("Enter", self._factory_enter)
         self.register_node_type("Exit", self._factory_exit)
+        self.register_node_type("State", self._factory_state)
 
     @staticmethod
     def _factory_enter():  # noqa: D401
@@ -52,6 +53,11 @@ class QD_StateScene(QD_GfxScene):
     def _factory_exit():  # noqa: D401
         from nodes.state.primitives.exit import Exit
         return Exit()
+
+    @staticmethod
+    def _factory_state():  # noqa: D401
+        from nodes.state.primitives.state import State
+        return State()
 
     # Example placeholder hook for future logic
     def ensure_root(self):  # noqa: D401
@@ -65,7 +71,7 @@ class QD_StateScene(QD_GfxScene):
         if item is not None:
             return super().contextMenuEvent(event)
         menu = QMenu()
-        add_menu = menu.addMenu("Add State Node")
+        add_menu = menu.addMenu("添加状态节点")
         for label in self.node_factory_labels():
             act = add_menu.addAction(label)
             act.triggered.connect(lambda _c=False, l=label, p=QPointF(scene_pos): self._spawn_node(l, p))

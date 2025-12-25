@@ -17,7 +17,7 @@ __all__ = ["Enter"]
 class Enter(QD_StateNode):  # changed base class
     def __init__(self, title: str = "Enter", parent=None):
         super().__init__(title=title, parent=parent, in_sockets=[])  # out_sockets created below
-        out_socket = QD_NodeSocket(SocketDirection.OUT, parent=self, sock_type=SocketType.BOOL)
+        out_socket = QD_NodeSocket(SocketDirection.OUT, parent=self, sock_type=SocketType.PROCESS)
         self._out_sockets = [out_socket]
         self._layout_sockets()
 

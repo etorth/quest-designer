@@ -17,7 +17,7 @@ __all__ = ["Exit"]
 class Exit(QD_StateNode):  # changed base class
     def __init__(self, title: str = "Exit", parent=None):
         super().__init__(title=title, parent=parent, in_sockets=[], out_sockets=[])
-        in_socket = QD_NodeSocket(SocketDirection.IN, parent=self, sock_type=SocketType.BOOL)
+        in_socket = QD_NodeSocket(SocketDirection.IN, parent=self, sock_type=SocketType.PROCESS)
         self._in_sockets = [in_socket]
         self._layout_sockets()
 
